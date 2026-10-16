@@ -4,22 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Beat Road</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
+  /* Helvetica Now Display: used if it's installed, or if the licensed webfont files are dropped into fonts/ */
+  @font-face { font-family:'Helvetica Now Display'; font-weight:400; font-style:normal; font-display:swap; src:local('Helvetica Now Display'), local('HelveticaNowDisplay-Regular'), url(fonts/HelveticaNowDisplay-Regular.woff2) format('woff2'); }
+  @font-face { font-family:'Helvetica Now Display'; font-weight:500; font-style:normal; font-display:swap; src:local('Helvetica Now Display Medium'), local('HelveticaNowDisplay-Medium'), url(fonts/HelveticaNowDisplay-Medium.woff2) format('woff2'); }
+  @font-face { font-family:'Helvetica Now Display'; font-weight:700; font-style:normal; font-display:swap; src:local('Helvetica Now Display Bold'), local('HelveticaNowDisplay-Bold'), url(fonts/HelveticaNowDisplay-Bold.woff2) format('woff2'); }
+  @font-face { font-family:'Helvetica Now Display'; font-weight:800; font-style:normal; font-display:swap; src:local('Helvetica Now Display ExtraBold'), local('HelveticaNowDisplay-ExtraBold'), url(fonts/HelveticaNowDisplay-ExtraBold.woff2) format('woff2'); }
+  :root { --font:'Helvetica Now Display','HelveticaNowDisplay','Helvetica Neue',Helvetica,Arial,sans-serif;
     --paper:#f6f1e7; --paper-2:#efe8da; --ink:#2b2a27; --muted:#6f695e; --line:#e0d8c7;
     --accent:#c8643b; --sage:#6f8f72; --spot:#3f8f5c;
   }
   * { box-sizing:border-box; }
-  html,body { margin:0; height:100%; overflow:hidden; background:#dfe6e2; color:var(--ink); font-family:Manrope,system-ui,sans-serif; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#dfe6e2; color:var(--ink); font-family:var(--font); }
   #app canvas { display:block; }
   .hidden { display:none !important; }
   .overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:16px; z-index:10; background:linear-gradient(180deg, rgba(40,36,30,.05), rgba(40,36,30,.28)); }
   .panel { width:min(560px,100%); max-height:100%; overflow:auto; background:rgba(246,241,231,.94); border-radius:20px; padding:30px 30px 24px; box-shadow:0 30px 80px rgba(40,34,24,.28), 0 2px 0 rgba(255,255,255,.6) inset; }
-  h1 { font-family:Fraunces,Georgia,serif; font-weight:600; font-size:clamp(34px,7vw,48px); margin:0 0 4px; letter-spacing:-.01em; }
-  h1 em { font-style:italic; font-weight:500; color:var(--accent); }
-  h2 { font-family:Fraunces,Georgia,serif; font-weight:600; margin:0 0 14px; font-size:28px; }
+  h1 { font-family:var(--font); font-weight:600; font-size:clamp(34px,7vw,48px); margin:0 0 4px; letter-spacing:-.01em; }
+  h1 em { font-style:normal; font-weight:500; color:var(--accent); }
+  h2 { font-family:var(--font); font-weight:600; margin:0 0 14px; font-size:28px; }
   .tag { color:var(--muted); margin:0 0 22px; line-height:1.55; font-size:15px; }
   .choices { display:grid; gap:10px; }
   .choice { all:unset; cursor:pointer; display:flex; flex-direction:column; gap:2px; padding:14px 16px; border-radius:12px; background:#fffdf8; border:1px solid var(--line); transition:border-color .15s, transform .15s, box-shadow .15s; }
@@ -30,7 +33,7 @@
   .choice.cdpick { border-left:4px solid var(--accent); }
   #cdPanel { margin-top:10px; padding:14px 16px; border-radius:14px; background:#fffdf8; border:1px solid var(--line); }
   #cdPanel .cdHead { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
-  #cdPanel .cdHead b { font-family:Fraunces,Georgia,serif; font-style:italic; font-size:18px; }
+  #cdPanel .cdHead b { font-family:var(--font); font-style:normal; font-size:18px; }
   #cdPanel .cdHead span { color:var(--muted); font-size:12px; }
   #cdList { margin:10px 0 0; padding-left:22px; font-size:13px; }
   #cdList li { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid var(--line); }
@@ -48,18 +51,34 @@
   .level { all:unset; cursor:pointer; position:relative; display:flex; flex-direction:column; gap:3px; padding:16px 16px 14px; border-radius:14px; min-height:96px; overflow:hidden; transition:transform .15s, box-shadow .15s; }
   .level:hover, .level:focus-visible { transform:translateY(-2px); box-shadow:0 10px 26px rgba(40,30,20,.18); }
   .level.sakura { background:linear-gradient(160deg, #ffe7cf 0%, #f9c3b4 45%, #e99aa9 75%, #8c78a8 100%); color:#4a2430; }
+  .level.driftmode { grid-column:1 / -1; background:linear-gradient(120deg, #3a1f17 0%, #8c3b22 45%, #d9822b 80%, #f2c46a 100%); color:#fff4e6; }
   .level.crush { grid-column:1 / -1; background:linear-gradient(120deg, #1b1a1f 0%, #3a3140 40%, #b98a3e 78%, #f3d38a 100%); color:#fff4dc; }
   .level.night { background:linear-gradient(150deg, #2a2550 0%, #1a1838 55%, #3b2a5e 100%); color:#f3ecff; }
   .level .lvNum { font-size:10px; font-weight:800; letter-spacing:.22em; text-transform:uppercase; opacity:.75; }
-  .level b { font-family:Fraunces,Georgia,serif; font-size:22px; font-weight:600; font-style:italic; }
+  .level b { font-family:var(--font); font-size:22px; font-weight:600; font-style:normal; }
   .level .lvInfo { font-size:12px; opacity:.85; }
   .level .best { font-size:11px; font-weight:700; letter-spacing:.06em; margin-top:2px; opacity:.9; }
   .level.tutorial { display:flex; width:100%; box-sizing:border-box; margin-top:4px; background:linear-gradient(150deg, #e7efe4 0%, #cfe0cc 60%, #b8d0b8 100%); color:#24402c; min-height:0; }
   #tut { position:fixed; left:16px; top:72px; width:min(360px, calc(100vw - 32px)); z-index:6; padding:14px 16px 15px; border-radius:14px; background:rgba(246,241,231,.94); color:var(--ink); box-shadow:0 12px 34px rgba(30,24,16,.25); opacity:0; transform:translateY(-6px); transition:opacity .3s, transform .3s; pointer-events:none; }
   #tut.on { opacity:1; transform:none; }
+  /* tutorial: highlighted words, glowing HUD elements, and the freeze-frame callouts */
+  #tutText mark, .tcText mark { background:rgba(255,196,74,.28); color:inherit; padding:0 4px; border-radius:4px; font-weight:700; box-shadow:inset 0 -2px 0 rgba(224,138,46,.7); }
+  .tutGlow { box-shadow:0 0 0 3px #ffc24a, 0 0 22px rgba(255,194,74,.85) !important; animation:tutGlow 1s ease-in-out infinite; border-radius:12px; }
+  @keyframes tutGlow { 50% { box-shadow:0 0 0 3px rgba(255,194,74,.45), 0 0 8px rgba(255,194,74,.3) !important; } }
+  #tutDim { position:fixed; inset:0; z-index:5; pointer-events:none; opacity:0; transition:opacity .35s; }
+  #tutDim.on { opacity:1; }
+  #tutRing { position:fixed; left:0; top:0; z-index:5; width:120px; height:120px; margin:-60px 0 0 -60px; border-radius:50%; border:3px solid #ffc24a; box-shadow:0 0 24px rgba(255,194,74,.8); pointer-events:none; opacity:0; transition:opacity .3s; animation:tutRingPulse 1.2s ease-in-out infinite; }
+  #tutRing.on { opacity:1; }
+  @keyframes tutRingPulse { 50% { transform:scale(1.12); } }
+  #tutCallout { position:fixed; left:0; top:0; z-index:7; width:min(340px, calc(100vw - 32px)); padding:14px 16px 12px; border-radius:16px; background:rgba(246,241,231,.97); color:var(--ink); box-shadow:0 14px 40px rgba(20,16,10,.35); opacity:0; pointer-events:none; transition:opacity .25s; font-family:var(--font); }
+  #tutCallout.on { opacity:1; }
+  #tutCallout .tcKicker { font-size:10px; font-weight:800; letter-spacing:.2em; text-transform:uppercase; color:#e08a2e; }
+  #tutCallout .tcTitle { font-size:20px; font-weight:800; margin:2px 0 4px; }
+  #tutCallout .tcText { font-size:13.5px; line-height:1.5; }
+  #tutCallout .tcGo { margin-top:10px; font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--muted); }
   #tut .tutTop { display:flex; justify-content:space-between; font-size:10px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
   #tut .tutKeys { letter-spacing:.04em; text-transform:none; font-weight:600; }
-  #tutTitle { font-family:Fraunces,Georgia,serif; font-style:italic; font-size:22px; font-weight:600; margin:4px 0 4px; }
+  #tutTitle { font-family:var(--font); font-style:normal; font-size:22px; font-weight:600; margin:4px 0 4px; }
   #tutText { font-size:13.5px; line-height:1.5; }
   #tut .tutCheck { position:absolute; right:14px; bottom:10px; width:30px; height:30px; border-radius:50%; background:#46b86c; color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; transform:scale(0); transition:transform .25s cubic-bezier(.3,1.6,.5,1); }
   #tut.done .tutCheck { transform:scale(1); }
@@ -87,47 +106,47 @@
   .btn.ghost { background:var(--paper-2); color:var(--ink); }
   .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; }
   .stat { background:#fffdf8; border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
-  .stat .v { font-family:Fraunces,Georgia,serif; font-size:24px; font-weight:600; }
+  .stat .v { font-family:var(--font); font-size:24px; font-weight:600; }
   .stat .l { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.1em; font-weight:600; }
-  .grade { font-family:Fraunces,Georgia,serif; font-style:italic; font-size:72px; line-height:1; text-align:center; margin:4px 0 16px; color:var(--accent); }
+  .grade { font-family:var(--font); font-style:normal; font-size:72px; line-height:1; text-align:center; margin:4px 0 16px; color:var(--accent); }
 
   #hud { position:fixed; inset:0; pointer-events:none; z-index:5; color:#fffaf0; text-shadow:0 1px 10px rgba(30,24,16,.35); }
   #yen { position:absolute; top:20px; left:22px; display:flex; align-items:baseline; gap:6px; padding:5px 14px 6px; border-radius:999px; background:rgba(30,26,20,.28); box-shadow:0 0 0 1.5px rgba(255,214,120,.55); }
-  #yen .ysym { font-family:Fraunces,Georgia,serif; font-size:18px; color:#ffd77a; }
-  #yenVal { font-family:Fraunces,Georgia,serif; font-size:22px; font-weight:600; font-variant-numeric:tabular-nums; }
+  #yen .ysym { font-family:var(--font); font-size:18px; color:#ffd77a; }
+  #yenVal { font-family:var(--font); font-size:22px; font-weight:600; font-variant-numeric:tabular-nums; }
   #yen.bump { animation:bump .35s ease-out; }
   #cargo { position:absolute; top:66px; left:22px; display:flex; align-items:center; gap:8px; padding:5px 12px 5px 10px; border-radius:999px; background:rgba(30,26,20,.28); box-shadow:0 0 0 1.5px rgba(255,250,240,.45); color:#fff6e4; }
   #cargo.off { display:none; }
   #cargoIcon { font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; font-weight:900; font-size:17px; color:#ff7a5c; }
-  #cargo .clbl { font:700 10px Manrope, sans-serif; letter-spacing:.16em; opacity:.8; }
+  #cargo .clbl { font:700 10px var(--font); letter-spacing:.16em; opacity:.8; }
   #cargo .cBar { width:84px; height:7px; border-radius:4px; background:rgba(255,255,255,.18); overflow:hidden; }
   #cargoFill { height:100%; width:100%; background:#7fe0a8; transition:width .25s, background .25s; }
-  #cargoPct { font:700 13px Manrope, sans-serif; font-variant-numeric:tabular-nums; min-width:36px; text-align:right; }
+  #cargoPct { font:700 13px var(--font); font-variant-numeric:tabular-nums; min-width:36px; text-align:right; }
   #cargo.hit { animation:cargoHit .45s ease-out; }
   @keyframes cargoHit { 25% { transform:translateX(-5px); box-shadow:0 0 0 2px #ff5a3d; } 55% { transform:translateX(4px); } }
   /* skill chain card rides just under the car */
   #carTag { position:absolute; left:0; top:0; text-align:center; white-space:nowrap; will-change:transform; }
-  #chain { min-width:170px; padding:8px 12px 9px; border-radius:12px; background:rgba(30,26,20,.34); backdrop-filter:blur(3px); opacity:0; transition:opacity .25s; }
+  #chain { min-width:210px; padding:9px 14px 10px; border-radius:12px; background:rgba(30,26,20,.34); backdrop-filter:blur(3px); opacity:0; transition:opacity .25s; }
   #chain.on { opacity:1; }
-  #chainRows .r { display:flex; justify-content:space-between; gap:16px; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; opacity:.55; line-height:1.6; }
+  #chainRows .r { display:flex; justify-content:space-between; gap:16px; font-size:15px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; opacity:.55; line-height:1.6; }
   #chainRows .r.on { opacity:1; color:#ffe1a3; }
   #chainRows .r .v { font-variant-numeric:tabular-nums; letter-spacing:0; }
   #chainFoot { display:flex; justify-content:space-between; align-items:baseline; gap:14px; margin-top:4px; padding-top:4px; border-top:1px solid rgba(255,250,240,.25); }
-  #chainMult { font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
-  #chainTotal { font-family:Fraunces,Georgia,serif; font-size:22px; font-weight:600; font-variant-numeric:tabular-nums; }
+  #chainMult { font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+  #chainTotal { font-family:var(--font); font-size:28px; font-weight:600; font-variant-numeric:tabular-nums; }
   #chainTimer { height:2px; margin-top:5px; border-radius:2px; background:rgba(255,250,240,.2); overflow:hidden; }
   #chainTimerFill { height:100%; width:100%; background:#fffaf0; }
   #chain.banked #chainTotal { color:#ffe1a3; }
   #chain.lost { color:#f4b3a1; }
   #chain.lost #chainTotal { text-decoration:line-through; }
   @keyframes bump { 0% { transform:scale(1.18); } 100% { transform:none; } }
-  #tagPop { position:absolute; left:50%; bottom:100%; transform:translateX(-50%); font-weight:700; font-size:13px; opacity:0; white-space:nowrap; }
+  #tagPop { position:absolute; left:50%; bottom:100%; transform:translateX(-50%); font-weight:800; font-size:21px; letter-spacing:.01em; opacity:0; white-space:nowrap; text-shadow:0 2px 8px rgba(0,0,0,.55); }
   #tagPop.show { animation:pop .8s ease-out; }
   @keyframes pop { 0% { opacity:0; transform:translate(-50%, 6px); } 20% { opacity:1; } 100% { opacity:0; transform:translate(-50%, -16px); } }
   /* score + multiplier badge, top right; the ring fills toward the next multiplier */
   #scoreBox { display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-bottom:6px; }
   #scoreBox.bump #score { animation:bump .3s ease-out; }
-  #score { font-family:Fraunces,Georgia,serif; font-size:clamp(28px,5vw,42px); font-weight:600; font-variant-numeric:tabular-nums; line-height:1; }
+  #score { font-family:var(--font); font-size:clamp(28px,5vw,42px); font-weight:600; font-variant-numeric:tabular-nums; line-height:1; }
   #multRing { position:relative; width:48px; height:48px; flex:none; }
   #multRing svg { position:absolute; inset:0; transform:rotate(-90deg); overflow:visible; }
   #multRing circle { fill:rgba(30,26,20,.28); stroke-width:3.5; }
@@ -141,44 +160,63 @@
   #srcLabel { font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #progress { position:absolute; top:0; left:0; right:0; height:3px; background:rgba(255,255,255,.18); }
   #progressFill { height:100%; width:0; background:#fffaf0; opacity:.85; }
-  #flash { position:absolute; top:24%; left:0; right:0; text-align:center; font-family:Fraunces,Georgia,serif; font-style:italic; font-size:clamp(24px,5vw,36px); opacity:0; }
+  /* drift zone heads-up: touge-striped banner that slides in a few hundred metres before a 峠 */
+  .roadBanner { position:absolute; top:31%; left:50%; transform:translate(-50%, -12px); min-width:min(560px, 86vw); text-align:center; color:#fff; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; }
+  .roadBanner.on { opacity:1; transform:translate(-50%, 0); }
+  .roadBanner.on .zbText { animation:zbPulse .9s ease-in-out infinite; }
+  .roadBanner .zbStripe { display:none; }
+  .roadBanner .zbText { padding:0 0 2px; text-shadow:0 2px 10px rgba(0,0,0,.45); font-family:var(--font); font-weight:800; font-size:clamp(22px, 4.6vw, 40px); letter-spacing:.06em; text-transform:uppercase; line-height:1.05; }
+  .roadBanner .zbSub { padding:0; text-shadow:0 1px 8px rgba(0,0,0,.5); display:flex; justify-content:center; gap:12px; align-items:baseline; font-family:var(--font); font-weight:700; font-size:14px; letter-spacing:.2em; text-transform:uppercase; color:#ffd77a; }
+  .roadBanner .zbKanji.gas { font-family:inherit; font-size:18px; }
+  .roadBanner .zbKanji { font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; font-weight:900; font-size:22px; letter-spacing:0; color:#ff6a50; }
+  @keyframes zbPulse { 50% { color:#ffd77a; } }
+  /* low-fuel warning light: rides beside the truck, blinking like a dashboard lamp */
+  #warnLamps { position:absolute; left:0; top:0; display:flex; gap:8px; align-items:center; pointer-events:none; will-change:transform; }
+  #warnLamps .lamp { width:38px; height:38px; display:none; }
+  #warnLamps .lamp.on { display:block; animation:lampBlink 1s steps(1) infinite; }
+  #engineIcon { width:46px !important; }
+  #warnLamps svg { width:100%; height:100%; filter:drop-shadow(0 0 6px rgba(255,180,20,.9)) drop-shadow(0 0 14px rgba(255,150,0,.55)); }
+  #fuelIcon svg { fill:#ffc21a; }
+  #engineIcon svg { stroke:#ffc21a; }
+  @keyframes lampBlink { 50% { opacity:.35; } }
+  #flash { position:absolute; top:24%; left:0; right:0; text-align:center; font-family:var(--font); font-style:normal; font-size:clamp(24px,5vw,36px); opacity:0; }
   #flash.show { animation:flash 1.2s ease-out; }
   @keyframes flash { 0%{opacity:0; transform:translateY(8px)} 18%{opacity:1; transform:none} 100%{opacity:0; transform:translateY(-14px)} }
-  #ready { position:absolute; top:38%; left:0; right:0; text-align:center; font-family:Fraunces,Georgia,serif; font-style:italic; font-size:clamp(24px,5vw,38px); }
+  #ready { position:absolute; top:38%; left:0; right:0; text-align:center; font-family:var(--font); font-style:normal; font-size:clamp(24px,5vw,38px); }
   /* digital gauge cluster, '80s Japanese hatchback style: fuel bar · segment tach · 7-seg speed · car bar · lamps */
-  #cluster { position:absolute; right:12px; bottom:8px; width:min(420px, 78vw); filter:drop-shadow(0 6px 18px rgba(0,0,0,.35)); }
-  #cluster svg { display:block; width:100%; height:auto; overflow:visible; }
-  #cluster .panel { fill:#0b0c0d; stroke:#2a2c2e; stroke-width:2; }
-  #cluster .silk { fill:#d9dcd6; font:700 7px Manrope, sans-serif; letter-spacing:.08em; }
-  #cluster .silk.sm { font-size:5.4px; letter-spacing:.12em; }
-  #cluster .silk.num { font:700 9px Manrope, sans-serif; text-anchor:middle; dominant-baseline:middle; }
-  #cluster .silk.num.red { fill:#ff5a3d; }
-  #cluster .seg { fill:rgba(255,255,255,.06); }
-  #cluster .tach.on { fill:#e8f6ff; filter:drop-shadow(0 0 2px rgba(200,235,255,.9)); }
-  #cluster .tach.on.amber { fill:#ffc04a; filter:drop-shadow(0 0 2px #ffb347); }
-  #cluster .tach.on.red { fill:#ff4a33; filter:drop-shadow(0 0 2px #ff4a33); }
-  #cluster .bar.on { fill:#4dff8f; filter:drop-shadow(0 0 2px #4dff8f); }
-  #cluster .bar.on.low { fill:#ffb347; filter:drop-shadow(0 0 2px #ffb347); }
-  #cluster .bar.on.crit { fill:#ff4a33; filter:drop-shadow(0 0 2px #ff4a33); }
-  #cluster .d7 { fill:rgba(77,255,143,.07); }
-  #cluster .d7.on { fill:#4dff8f; filter:drop-shadow(0 0 3px rgba(77,255,143,.85)); }
-  #cluster .lamp { font:800 6.2px Manrope, sans-serif; letter-spacing:.1em; text-anchor:middle; fill:rgba(255,255,255,.12); transition:fill .15s; }
-  #cluster .lamp.on.amber { fill:#ffb347; filter:drop-shadow(0 0 3px #ffb347); }
-  #cluster .lamp.on.red { fill:#ff4a33; filter:drop-shadow(0 0 3px #ff4a33); }
-  #cluster .lamp.on.green { fill:#4dff8f; filter:drop-shadow(0 0 3px #4dff8f); }
-  #cluster.hit .panel { stroke:#ff4a33; }
-  #cluster .blink { animation:blink .8s steps(2) infinite; }
+  /* gauge cluster: the same clean HUD language as the rest — a glassy pill, big Helvetica numbers, thin bars */
+  #cluster { position:absolute; right:16px; bottom:14px; width:236px; padding:12px 16px 14px; border-radius:20px; color:#fff;
+    background:rgba(20,18,24,.42); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); box-shadow:0 0 0 1.5px rgba(255,250,240,.32), 0 8px 24px rgba(0,0,0,.25); transition:box-shadow .2s; font-family:var(--font); }
+  #cluster.hit { box-shadow:0 0 0 2px #ff5a3d, 0 8px 24px rgba(0,0,0,.25); }
+  #cluster .clTop { display:flex; justify-content:space-between; align-items:flex-end; }
+  #cluster .clSpeed { display:flex; align-items:baseline; gap:6px; }
+  #spdNum { font-size:50px; font-weight:800; line-height:.9; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  #cluster .clUnit { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; opacity:.7; }
+  #cluster .clGear { display:flex; flex-direction:column; align-items:flex-end; line-height:1; }
+  #gearNum { font-size:24px; font-weight:800; font-variant-numeric:tabular-nums; }
+  #cluster .clRpm { position:relative; height:6px; margin:10px 0 12px; border-radius:3px; background:rgba(255,255,255,.16); overflow:hidden; }
+  #rpmFill { height:100%; width:0%; border-radius:3px; background:#fff; transition:background .15s; }
+  #rpmFill.hi { background:#ffc24a; } #rpmFill.red { background:#ff5a3d; }
+  #cluster .clRedline { position:absolute; top:0; bottom:0; left:87.5%; right:0; background:rgba(255,90,61,.35); }
+  #cluster .clBars { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  #cluster .clBar { display:flex; flex-direction:column; gap:5px; }
+  #cluster .clLbl { font-size:10px; font-weight:800; letter-spacing:.18em; opacity:.75; }
+  #cluster .clTrack { height:6px; border-radius:3px; background:rgba(255,255,255,.16); overflow:hidden; }
+  #cluster .clTrack div { height:100%; width:100%; border-radius:3px; background:#fff; transition:width .25s, background .25s; }
+  #cluster .clTrack div.low { background:#ffc24a; } #cluster .clTrack div.crit { background:#ff5a3d; }
+  #lampLock { position:absolute; top:12px; left:50%; transform:translateX(-50%); font-size:10px; font-weight:800; letter-spacing:.16em; color:#ffd77a; opacity:0; transition:opacity .2s; }
+  #lampLock.on { opacity:1; }
   @keyframes blink { 50% { opacity:.25; } }
   @keyframes hpPulse { 50% { box-shadow:0 0 0 2px #ffb3a1, 0 0 20px rgba(220,80,60,.7); } }
   #fuel { position:absolute; left:64px; top:50%; transform:translateY(-50%); width:12px; height:min(42vh,320px); border-radius:8px; background:rgba(30,26,20,.28); box-shadow:0 0 0 2px rgba(255,250,240,.55), 0 4px 18px rgba(0,0,0,.18); overflow:hidden; }
-  #bonus { position:absolute; top:84px; left:50%; transform:translateX(-50%); text-align:center; opacity:0; transition:opacity .3s; }
+  #bonus { display:none; position:absolute; top:84px; left:50%; transform:translateX(-50%); text-align:center; opacity:0; transition:opacity .3s; }
   #bonus.on { opacity:1; }
-  #bonusLabel { font-family:Fraunces,Georgia,serif; font-style:italic; font-size:20px; color:#ffd77a; text-shadow:0 0 16px rgba(255,190,80,.7); }
+  #bonusLabel { font-family:var(--font); font-style:normal; font-size:20px; color:#ffd77a; text-shadow:0 0 16px rgba(255,190,80,.7); }
   #bonusBar { margin:6px auto 0; width:160px; height:4px; border-radius:4px; background:rgba(255,250,240,.25); overflow:hidden; }
   #bonusFill { height:100%; width:100%; background:#ffd77a; }
   #stage { position:absolute; top:14%; left:0; right:0; text-align:center; opacity:0; transition:opacity 1.6s ease; }
   #stage.show { opacity:1; }
-  #stageName { font-family:Fraunces,Georgia,serif; font-size:clamp(30px,6vw,52px); font-weight:500; font-style:italic; }
+  #stageName { font-family:var(--font); font-size:clamp(30px,6vw,52px); font-weight:500; font-style:normal; }
   #stageSub { font-size:12px; letter-spacing:.3em; text-transform:uppercase; margin-top:4px; opacity:.85; }
 </style>
 <script type="importmap">
@@ -207,10 +245,15 @@
     </div>
     <div id="srcLabel"></div>
   </div>
+  <div id="warnLamps"><div id="engineIcon" class="lamp" aria-label="Check engine"><svg viewBox="0 0 64 48" fill="none" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round"><path d="M18 16H26L29 12H42L44 16H48V21H52V17H56V35H52V31H48V38H31L25 32H18Z"/><path d="M27 6H45M32 6V12M40 6V12M11 17V33M11 25H18"/></svg></div>
+  <div id="fuelIcon" class="lamp" aria-label="Low fuel"><svg viewBox="0 0 64 64"><path d="M10 54h30v4H10zM14 10a4 4 0 0 1 4-4h14a4 4 0 0 1 4 4v44H14zM19 12v12h12V12z" fill-rule="evenodd"/><path d="M36 34h3a4 4 0 0 1 4 4v10a4 4 0 0 0 8 0V24c0-4-2-7-5-10l-4-5 3-2 4 5c4 4 6 8 6 12v24a8 8 0 0 1-16 0V38h-3z"/></svg></div></div>
   <div id="flash"></div>
-  <div id="ready">listening…</div>
+  <div id="zoneBanner" class="roadBanner"><div class="zbStripe"></div><div class="zbText">Drift zone approaching</div><div class="zbSub"><span class="zbKanji">峠</span><span id="zbInfo">400 m</span></div><div class="zbStripe"></div></div>
+  <div id="stationBanner" class="roadBanner"><div class="zbText">Gas station ahead</div><div class="zbSub"><span class="zbKanji gas">⛽</span><span id="sbInfo">300 m</span></div></div>
 </div>
 <div id="stage"><div id="stageName"></div><div id="stageSub"></div></div>
+<div id="tutDim"></div><div id="tutRing"></div>
+<div id="tutCallout"><div class="tcKicker">Heads up</div><div class="tcTitle"></div><div class="tcText"></div><div class="tcGo"><kbd>Enter</kbd> or <kbd>Space</kbd> to continue</div></div>
 <div id="tut"><div class="tutTop"><span id="tutStep"></span><span class="tutKeys"><kbd>Enter</kbd> skip step</span></div><div id="tutTitle"></div><div id="tutText"></div><div class="tutCheck">✓</div></div>
 <div id="fadeCut"></div>
 
@@ -224,6 +267,7 @@
       <button class="level sakura" data-level="0"><span class="lvNum">Level 1</span><b>Sakura Kaidō</b><span class="lvInfo">Winter sakura at sunset · lo-fi · 2:35 · deliver 酒 sake casks</span><span class="best" id="best0"></span></button>
       <button class="level night" data-level="1"><span class="lvNum">Level 2</span><b>Tokyo Nights</b><span class="lvInfo">City lights · night drive · 2:27 · deliver fragile crates</span><span class="best" id="best1"></span></button>
       <button class="level crush" data-level="2"><span class="lvNum">Level 3</span><b>Instant Crush</b><span class="lvInfo">Daft Punk ft. Julian Casablancas · starts and ends in Tokyo, every region between · 5:38 · deliver fragile crates</span><span class="best" id="best2"></span></button>
+      <button class="level driftmode" id="btnDrift"><span class="lvNum">Endless</span><b>Drift Mode</b><span class="lvInfo">One 峠 that never ends, through Momiji Pass · lo-fi · drifts, transitions & clips — go until you quit or wreck</span><span class="best" id="bestDrift"></span></button>
     </div>
     <div class="sectionLbl">Or drive to your own music <small>(all regions)</small></div>
     <div class="choices">
@@ -313,7 +357,7 @@ const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 // shared defaults; each region overrides what it needs
 const BIOME_DEFAULTS = {
   fieldA: '#000000', fieldB: '#000000', fieldC: '#000000', fields: 0,
-  petals: 0, city: 0, fuji: 0, golden: 0, torii: 0, toro: 0, vending: 0.3, poles: 1, posts: 1,
+  petals: 0, city: 0, fuji: 0, golden: 0, sunBehind: 0, snowRoad: 0, torii: 0, toro: 0, vending: 0.3, poles: 1, posts: 1,
   blossom: ['#f6c1cf'], pGlow: 0, paddy: 0, flat: 0,
 };
 const BIOMES = [
@@ -322,7 +366,7 @@ const BIOMES = [
     top: '#56679c', hor: '#ffbb85', fog: '#f1d0bd', sun: '#ffc88a', sunI: 2.7, sunEl: 0.09, sunAz: 0.45, hemiS: '#cfc6ea', hemiG: '#a495b4', hemiI: 1.2, exposure: 1.0, fogNear: 90, fogFar: 480,
     grassA: '#f6ece2', grassB: '#ecdfd3', verge: '#dccfc6', rock: '#8e868a', high: '#fff8f0',
     road: '#6e6a72', line: '#efe6dc', lineAmt: 0.8, track: '#b9a79d', trackA: 0.3, dust: '#fff3ea', dustAmt: 0.7, relief: 0.85, density: 0.62, night: 0,
-    petals: 1, golden: 1, torii: 0.3, vending: 0.35,
+    petals: 1, golden: 1, sunBehind: 1, snowRoad: 0.75, torii: 0.3, vending: 0.35,
     trees: { sakura: 9, sugi: 2, rock: 1 }, leaf: ['#3c5446', '#45604f', '#36493f'], blossom: ['#f7a9c0', '#f290ad', '#fbc3d4', '#ec82a3', '#ffd6e2'],
     pColor: '#fff0f2', pSize: 0.3, pFall: 1.4, pSway: 1.3, pAlpha: 0.95 },
   { name: 'Arashiyama', sub: 'bamboo groves',
@@ -357,7 +401,7 @@ const BIOMES = [
     top: '#9dbad3', hor: '#f1f5f8', fog: '#e9f0f5', sun: '#fffaf0', sunI: 2.0, sunEl: 0.38, sunAz: 2.0, hemiS: '#eef4f8', hemiG: '#b4c0cc', hemiI: 1.35, exposure: 0.98, fogNear: 60, fogFar: 400,
     grassA: '#eef2f5', grassB: '#e0e8ee', verge: '#dbe2e8', rock: '#8f98a2', high: '#ffffff',
     road: '#c8cfd6', line: '#c8cfd6', lineAmt: 0, track: '#8a98a8', trackA: 0.45, dust: '#ffffff', dustAmt: 1.0, relief: 1.5, density: 0.6, night: 0,
-    vending: 0.25,
+    vending: 0.25, snowRoad: 1,
     trees: { sugi: 8, pine: 2, rock: 2 }, leaf: ['#2f4a40', '#36564a', '#29403a', '#3d5c4c'],
     pColor: '#ffffff', pSize: 0.28, pFall: 3.0, pSway: 0.8, pAlpha: 0.9 },
   { name: 'Hotaru Valley', sub: 'fireflies at dusk',
@@ -410,20 +454,51 @@ function genPoint(i) {
   const base = (noise1(d * 0.0025) - 0.5) * 2 * 0.0045 + (noise1(d * 0.009 + 50) - 0.5) * 0.002;
   // ...with occasional touge sections: tight alternating S-bends (zero-mean, so the road never loops back on itself)
   const twist = twistAt(d);
-  // pure, evenly spaced S-bends inside a touge (one switch point every TOUGE_SPACING m), so a single
-  // steady speed can land every switch point on the beat
-  const st = twist > 0 ? tougeAt(d).st : 0;
-  const sbend = Math.sin((d - (st || 0)) * TOUGE_K);
-  const curv = base * (1 - twist) + twist * sbend * TOUGE_AMP;
+  // inside a touge: its planned corners (see planExtend), ramped in and out
+  const T = twist > 0 ? tougeAt(d) : null;
+  const curv = base * (1 - twist) + (T ? twist * tougeCurv(T, d) : 0);
   const h = p.h + curv * STEP * smooth(0, 150, d);
   const relief = 0.6 + mixN('relief', biomeAt(d)) * 0.5;
-  const y = ((noise1(d * 0.003 + 20) - 0.5) * 30 + (noise1(d * 0.009 + 70) - 0.5) * 5) * relief * smooth(0, 250, d);
+  const y = ((noise1(d * 0.003 + 20) - 0.5) * 30 + (noise1(d * 0.009 + 70) - 0.5) * 5) * relief * smooth(0, 250, d) + (T ? twist * tougeElev(T, d) : 0);
   return { x: p.x + Math.sin(h) * STEP, y, z: p.z - Math.cos(h) * STEP, h, s: d, b: 0 };
 }
 // 0 = open road, 1 = touge. Each 2.4 km stretch has a ~45% chance of one 900–1400 m touge (~20% of the drive);
 // the first stretch always has one so it shows up early.
 const TOUGE_SEG = 2400;
-const TOUGE_K = 0.045, TOUGE_AMP = 0.028, TOUGE_SPACING = Math.PI / TOUGE_K;   // ≈ 70 m between switch points, ~36 m corner radius
+// A 峠 is a run of corners that alternate left/right, each a different kind. Every corner is a whole number of
+// TOUGE_Q-metre quanta long, and the locked speed makes one quantum = a whole number of beats, so every switch point
+// (gate) still lands on a beat even though corners differ in length.
+const TOUGE_Q = 24.5, TOUGE_SPACING = 4 * TOUGE_Q;                 // quantum · a typical corner (used for gate geometry)
+const CORNERS = {
+  tight:   { q: 3, turn: 1.15, dy: 2 },     // ~74 m, short and sharp
+  normal:  { q: 4, turn: 1.3,  dy: 3 },     // ~98 m
+  sweep:   { q: 7, turn: 1.45, dy: 4 },     // ~172 m, long and open
+  hairpin: { q: 5, turn: 2.45, dy: 12 },    // ~123 m, ~140°, climbing or dropping ~12 m
+};
+const CORNER_BAG = ['normal', 'normal', 'tight', 'tight', 'sweep', 'sweep', 'hairpin', 'hairpin'];
+function planExtend(t, d) {
+  const P = t.plan || (t.plan = { c: [], end: t.st, head: 0, elev: 0, sign: hash1(t.st * 0.37) < 0.5 ? -1 : 1, n: 0 });
+  while (P.end <= d + 1) {
+    let type = CORNER_BAG[Math.floor(hash1(t.st * 0.013 + P.n * 7.31) * CORNER_BAG.length)];
+    if (P.n < 2 && (type === 'hairpin' || type === 'sweep')) type = 'normal';                 // ease in
+    const C = CORNERS[type], L = C.q * TOUGE_Q, sign = P.sign;
+    // each corner swings the heading to ±turn/2 either side of the entry direction, so the road keeps going the same
+    // way overall (≤ ~70° off) and every corner turns properly — a hairpin after a gentle bend turns even more
+    const target = sign * C.turn / 2, turn = Math.abs(target - P.head);
+    const dir = Math.abs(P.elev) > 10 ? -Math.sign(P.elev) : hash1(t.st * 0.77 + P.n * 3.1) < 0.5 ? -1 : 1;
+    P.c.push({ s0: P.end, L, A: sign * turn * Math.PI / (2 * L), e0: P.elev, dy: dir * C.dy * (0.6 + 0.4 * hash1(P.n * 1.9 + t.st)), type });
+    P.end += L; P.head = target; P.elev += P.c[P.c.length - 1].dy; P.sign = -sign; P.n++;
+  }
+  return P.c;
+}
+function cornerAt(t, d) {
+  const c = planExtend(t, d);
+  let lo = 0, hi = c.length - 1;
+  while (lo < hi) { const m = (lo + hi + 1) >> 1; if (c[m].s0 <= d) lo = m; else hi = m - 1; }
+  return c[lo];
+}
+const tougeCurv = (t, d) => { const c = cornerAt(t, d); return c.A * Math.sin(Math.PI * (d - c.s0) / c.L); };
+const tougeElev = (t, d) => { const c = cornerAt(t, d), x = Math.max(0, Math.min(1, (d - c.s0) / c.L)); return c.e0 + c.dy * x * x * (3 - 2 * x); };
 function tougeStartOf(j) {
   if (j < 0 || (j > 0 && hash1(j * 11.7 + 3) > 0.45)) return null;
   const st = j * TOUGE_SEG + 300 + hash1(j * 7.3 + 1) * 400;
@@ -434,12 +509,17 @@ function tougeStartOf(j) {
 // scheduled ahead of time so it lines up with the song's solo and lasts as long as it does (see soloPace).
 let tougeMode = 'random';          // 'random' | 'song'
 const scheduled = [];              // song 峠: { st, len, vLock, solo }
+const randTouges = new Map();      // random 峠 by segment (each carries its corner plan)
 function tougeAt(d) {
   if (tougeMode === 'song') { for (const t of scheduled) if (d >= t.st && d <= t.st + t.len) return t; return null; }
-  const j = Math.floor(d / TOUGE_SEG), st = tougeStartOf(j);
-  if (st === null) return null;
-  const len = 900 + hash1(j * 3.1 + 2) * 500;
-  return d >= st && d <= st + len ? { st, len } : null;
+  const j = Math.floor(d / TOUGE_SEG);
+  let t = randTouges.get(j);
+  if (t === undefined) {
+    const st = tougeStartOf(j);
+    t = st === null ? null : { st, len: 900 + hash1(j * 3.1 + 2) * 500 };
+    randTouges.set(j, t);
+  }
+  return t && d >= t.st && d <= t.st + t.len ? t : null;
 }
 function twistAt(d) {
   const t = tougeAt(d);
@@ -529,7 +609,7 @@ function ensurePath(i) {
         const prev = flips[flips.length - 1];
         flips.push(d);
         // a clipping point at the apex of the corner between two switch points (inside of the bend; every third one is an outer zone)
-        if (prev !== undefined && d - prev < 150) {
+        if (prev !== undefined && d - prev < 200) {
           const a = (prev + d) / 2, ia = Math.round(a / STEP), side = Math.sign(pts[ia + 1].h - pts[ia - 1].h) || 1;
           const outer = clips.length % 3 === 2;
           clips.push({ s: a, x: (outer ? -side : side) * 4.4, outer, judged: false, mat: null });
@@ -585,10 +665,12 @@ attachDepth();
 // planes (no noise on the road at grazing angles) and spikes at silhouettes and creases.
 const ink = new ShaderPass({
   uniforms: { tDiffuse: { value: null }, tDepth: { value: null }, px: { value: new THREE.Vector2() }, near: { value: 0.5 }, far: { value: 2600 },
-              inkCol: { value: new THREE.Color('#1a1426') }, fadeFar: { value: 400 }, amt: { value: 1 }, dpr: { value: Math.min(devicePixelRatio, 2) } },
+              inkCol: { value: new THREE.Color('#1a1426') }, fadeFar: { value: 400 }, amt: { value: 1 }, dpr: { value: Math.min(devicePixelRatio, 2) },
+              tRoadDepth: { value: null }, mono: { value: 0 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
   fragmentShader: `
-    uniform sampler2D tDiffuse, tDepth; uniform vec2 px; uniform float near, far, fadeFar, amt, dpr; uniform vec3 inkCol; varying vec2 vUv;
+    uniform sampler2D tDiffuse, tDepth, tRoadDepth; uniform vec2 px; uniform float near, far, fadeFar, amt, dpr, mono; uniform vec3 inkCol; varying vec2 vUv;
+    vec3 bw(vec3 c){ return vec3(dot(c, vec3(0.299, 0.587, 0.114))); }
     float dep(vec2 o){ return texture2D(tDepth, vUv + o * px).x; }
     float lin(float d){ return near * far / (far - d * (far - near)); }
     float edgeAt(float r, float zc, float dc){
@@ -605,16 +687,41 @@ const ink = new ShaderPass({
     void main(){
       vec4 c = texture2D(tDiffuse, vUv);
       float dc = dep(vec2(0.0));
-      if (dc >= 0.9999) { gl_FragColor = c; return; }          // sky
+      if (dc >= 0.9999) { gl_FragColor = vec4(mix(c.rgb, bw(c.rgb), mono), c.a); return; }          // sky
       float zc = lin(dc);
       float w = mix(1.2, 0.8, smoothstep(10.0, 80.0, zc)) * dpr;   // slightly thicker lines up close
       float e = edgeAt(w, zc, dc);
       e *= amt * (1.0 - smoothstep(fadeFar * 0.45, fadeFar * 1.1, zc));
-      gl_FragColor = vec4(mix(c.rgb, inkCol, e), c.a);
+      // drift zone: everything goes grey except pixels where the visible surface IS the road (same depth as the road-only pass)
+      float road = 0.0;
+      if (mono > 0.001) { float rd = texture2D(tRoadDepth, vUv).x; road = (rd < 0.9999 && abs(lin(rd) - zc) < 0.05 + zc * 0.004) ? 1.0 : 0.0; }
+      vec3 col = mix(c.rgb, bw(c.rgb), mono * (1.0 - road));
+      gl_FragColor = vec4(mix(col, inkCol, e), c.a);
     }`
 });
 { const r = ink.render.bind(ink); ink.render = (rd, wb, rb, dt, m) => { ink.uniforms.tDepth.value = rb.depthTexture; ink.uniforms.px.value.set(1 / rb.width, 1 / rb.height); r(rd, wb, rb, dt, m); }; }
 composer.addPass(ink);
+// road-only depth pass for the drift-zone black & white: road surfaces, gates / clipping points and the truck sit on
+// ROAD_LAYER as well as the default one; rendered alone into roadRT's depth only while the effect is on
+const ROAD_LAYER = 2;
+const roadMaskMat = new THREE.MeshBasicMaterial({ colorWrite: false });
+let roadRT = null;
+function renderRoadMask() {
+  const rt = composer.renderTarget1;
+  if (!roadRT || roadRT.width !== rt.width || roadRT.height !== rt.height) {
+    roadRT?.depthTexture?.dispose(); roadRT?.dispose();
+    roadRT = new THREE.WebGLRenderTarget(rt.width, rt.height);
+    roadRT.depthTexture = new THREE.DepthTexture(rt.width, rt.height); roadRT.depthTexture.type = THREE.UnsignedIntType;
+  }
+  const auto = renderer.shadowMap.autoUpdate;
+  renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = false;   // don't redo the shadow map for this
+  car.traverse(o => o.layers.enable(ROAD_LAYER));                              // the truck (and its load) keeps its colour too
+  scene.overrideMaterial = roadMaskMat; camera.layers.set(ROAD_LAYER);
+  renderer.setRenderTarget(roadRT); renderer.clear(); renderer.render(scene, camera);
+  renderer.setRenderTarget(null); scene.overrideMaterial = null; camera.layers.set(0);
+  renderer.shadowMap.autoUpdate = auto;
+  ink.uniforms.tRoadDepth.value = roadRT.depthTexture;
+}
 const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.42, 0.35, 0.95);   // tight radius + high threshold: only neon-bright things glow
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
@@ -685,7 +792,7 @@ let currentRegion = -1;
 function updateEnv(s) {
   const bw = biomeAt(s);
   for (const k in ENV) if (ENV[k].isColor) mixC(ENV[k], k, bw);
-  for (const k of ['sunI', 'sunEl', 'sunAz', 'hemiI', 'exposure', 'fogNear', 'fogFar', 'night', 'pSize', 'pFall', 'pSway', 'pAlpha', 'pGlow', 'dustAmt', 'trackA', 'petals', 'city', 'fuji', 'golden']) ENV[k] = mixN(k, bw);
+  for (const k of ['sunI', 'sunEl', 'sunAz', 'sunBehind', 'hemiI', 'exposure', 'fogNear', 'fogFar', 'night', 'pSize', 'pFall', 'pSway', 'pAlpha', 'pGlow', 'dustAmt', 'trackA', 'petals', 'city', 'fuji', 'golden']) ENV[k] = mixN(k, bw);
   const region = bw.f < 0.5 ? bw.k : bw.k + 1;
   if (region !== currentRegion) { currentRegion = region; showStage(BIOMES[regionAt(region)]); }
 }
@@ -822,7 +929,7 @@ const petalFx = new ParticlePool(800, false, 1.7, 1.1);
 const PETAL_COLS = ['#f7c6d4', '#f3b3c6', '#fde0e8', '#eea6bd'].map(c => new THREE.Color(c));
 const sparkles = new ParticlePool(260, true, 2.0, -1.5);
 const smoke = new ParticlePool(1800, false, 0.8, -0.6);
-const SMOKE = new THREE.Color('#ebe8e3'), RUBBER = new THREE.Color('#2a2a2d'), smokeCol = new THREE.Color();
+const SMOKE = new THREE.Color('#ebe8e3'), RUBBER = new THREE.Color('#2a2a2d'), smokeCol = new THREE.Color(), ENGINE_SMOKE = new THREE.Color('#e4e0da'), ENGINE_SMOKE_DARK = new THREE.Color('#7a746d'), _ev = new THREE.Vector3();
 
 // ambient: pollen / falling leaves / snow / fireflies, wrapped in a box around the car
 const AMB_N = 520, AMB_BOX = new THREE.Vector3(80, 32, 80);
@@ -929,6 +1036,47 @@ function petalCover(out, off, x, z, bw) {
   const a = Math.abs(off), patch = noise2(x * 0.18 + 7, z * 0.18 - 3);
   out.lerp(PETAL, pet * Math.min(0.85, smooth(4.0, 6.4, a) * (0.45 + patch * 0.55) + Math.max(0, patch - 0.78) * 1.2));
 }
+// wind-blown snow lying across the road in snowy regions: long streaky drifts at an angle to the road, drawn per pixel in
+// the road shader (crisp edges) from world position. The same formula runs here for the handling, so a drift you see
+// is exactly where the grip goes. Built from sines so JS and GLSL agree. `amt` (the region's snowRoad) sets coverage.
+const SNOW_GLSL = `float snowNoise(vec2 p){
+    vec2 q = vec2(dot(p, vec2(0.8, 0.6)) * 0.05, dot(p, vec2(-0.6, 0.8)) * 0.016);
+    float n = sin(q.x + 1.7 * sin(q.y * 1.3 + 0.5)) * 0.5
+            + sin(q.x * 2.3 + q.y * 1.7 + 2.1 * sin(q.y * 0.7 + q.x * 0.3)) * 0.3
+            + sin(q.x * 5.1 - q.y * 3.3 + 1.3) * 0.2;
+    return n * 0.5 + 0.5;
+  }
+  float snowPatch(vec2 p, float amt){ if (amt < 0.01) return 0.0; float t0 = 0.88 - 0.08 * amt; return smoothstep(t0 - 0.07, t0 + 0.05, snowNoise(p)); }`;
+// how snowy the road is at distance s: the region's amount, cleared out of drift zones (fading over the 峠's ramps)
+const snowAmtAt = (s, bw) => mixN('snowRoad', bw) * (1 - smooth(0.02, 0.25, twistAt(s)));
+function snowNoise(x, z) {
+  const qx = (x * 0.8 + z * 0.6) * 0.05, qy = (-x * 0.6 + z * 0.8) * 0.016;
+  const n = Math.sin(qx + 1.7 * Math.sin(qy * 1.3 + 0.5)) * 0.5
+          + Math.sin(qx * 2.3 + qy * 1.7 + 2.1 * Math.sin(qy * 0.7 + qx * 0.3)) * 0.3
+          + Math.sin(qx * 5.1 - qy * 3.3 + 1.3) * 0.2;
+  return n * 0.5 + 0.5;
+}
+function snowPatch(x, z, amt) {
+  if (amt < 0.01) return 0;
+  const t0 = 0.88 - 0.08 * amt;
+  return smooth(t0 - 0.07, t0 + 0.05, snowNoise(x, z));
+}
+const snowU = { col: { value: new THREE.Color('#f6ece2') } }, snowTrack = new THREE.Color();
+roadMat.onBeforeCompile = sh => {
+  sh.uniforms.uSnowCol = snowU.col;
+  sh.vertexShader = 'attribute float snowAmt;\nvarying float vSnowAmt;\nvarying vec2 vSnowXZ;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vSnowAmt = snowAmt; vSnowXZ = (modelMatrix * vec4(position, 1.0)).xz;');
+  sh.fragmentShader = 'uniform vec3 uSnowCol;\nvarying float vSnowAmt;\nvarying vec2 vSnowXZ;\n' + SNOW_GLSL + '\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+    float sp = snowPatch(vSnowXZ, vSnowAmt);
+    if (sp > 0.0) {
+      // powdery: thin wind-combed streaks and grit let the asphalt show through, densest in the middle of a drift
+      vec2 w = vSnowXZ;
+      float streak = 0.5 + 0.5 * sin(dot(w, vec2(0.6, 0.8)) * 2.1 + sin(dot(w, vec2(-0.8, 0.6)) * 0.55) * 3.0);
+      float grit = fract(sin(dot(floor(w * 16.0), vec2(12.9898, 78.233))) * 43758.5453);
+      float cover = sp * (0.45 + 0.4 * streak + 0.15 * grit);
+      diffuseColor.rgb = mix(diffuseColor.rgb, uSnowCol, clamp(cover * 1.1, 0.0, 0.88));
+    }`);
+};
+roadMat.customProgramCacheKey = () => 'roadSnow';
 function lineColor(out, rel, off, x, z, bw) {
   mixC(out, 'road', bw).lerp(mixC(tmpC2, 'line', bw), mixN('lineAmt', bw));
   petalCover(out, off, x, z, bw);
@@ -943,13 +1091,13 @@ function innerLimit(i) {
 }
 function buildStrip(i0, i1, cols, hFn, cFn, rowFilter) {
   const nr = i1 - i0 + 1, nc = cols.length;
-  const pos = new Float32Array(nr * nc * 3), col = new Float32Array(nr * nc * 3);
+  const pos = new Float32Array(nr * nc * 3), col = new Float32Array(nr * nc * 3), snow = new Float32Array(nr * nc);
   for (let r = 0; r < nr; r++) {
-    const p = pts[i0 + r], cx = Math.cos(p.h), cz = Math.sin(p.h), bw = biomeAt((i0 + r) * STEP), lim = innerLimit(i0 + r);
+    const p = pts[i0 + r], cx = Math.cos(p.h), cz = Math.sin(p.h), bw = biomeAt((i0 + r) * STEP), lim = innerLimit(i0 + r), sa = snowAmtAt((i0 + r) * STEP, bw);
     for (let c = 0; c < nc; c++) {
       const off = Math.sign(cols[c]) === lim.side ? Math.sign(cols[c]) * Math.min(Math.abs(cols[c]), lim.max) : cols[c], x = p.x + cx * off, z = p.z + cz * off, y = hFn(p, off, x, z, bw), k = (r * nc + c) * 3;
       pos[k] = x; pos[k + 1] = y; pos[k + 2] = z;
-      cFn(tmpC, y - p.y, off, x, z, bw); col[k] = tmpC.r; col[k + 1] = tmpC.g; col[k + 2] = tmpC.b;
+      cFn(tmpC, y - p.y, off, x, z, bw); col[k] = tmpC.r; col[k + 1] = tmpC.g; col[k + 2] = tmpC.b; snow[r * nc + c] = sa;
     }
   }
   const idx = [];
@@ -960,6 +1108,7 @@ function buildStrip(i0, i1, cols, hFn, cFn, rowFilter) {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setAttribute('snowAmt', new THREE.BufferAttribute(snow, 1));
   g.setIndex(idx); g.computeVertexNormals();
   return g;
 }
@@ -1028,6 +1177,34 @@ function instanced(geo, mat, list, colors) {
   return im;
 }
 
+// ---------------------------------------------------------------- drift-zone edge lines
+// additive ribbons just inside each road edge: one solid neon colour that switches on every bass beat, flaring with it
+const RAINBOW_OFF = 6.05;
+const EDGE_COLORS = ['#ff3b6b', '#ffb43b', '#3bffb0', '#3bb8ff', '#b45cff', '#ff5ce1', '#fff23b'].map(c => new THREE.Color(c));
+let edgeColor = 0, lastEdgeKick = 0;
+// next colour on each bass beat (a beat that lands while the low end is up)
+function updateEdgeLines() {
+  const u = rainbowMat.uniforms;
+  if (vis.kick > lastEdgeKick + 0.5 && vis.bass > 0.25) {
+    let n; do { n = Math.floor(Math.random() * EDGE_COLORS.length); } while (n === edgeColor);
+    edgeColor = n; u.uColor.value.copy(EDGE_COLORS[n]);
+  }
+  lastEdgeKick = vis.kick;
+  u.uLevel.value = vis.level; u.uKick.value = vis.kick; u.uBass.value = vis.bass; u.uOn.value = zoneFx;
+}
+const rainbowMat = new THREE.ShaderMaterial({
+  uniforms: { uColor: { value: new THREE.Color('#ff3b6b') }, uLevel: { value: 0.3 }, uKick: { value: 0 }, uBass: { value: 0.3 }, uOn: { value: 0 } },
+  vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
+  vertexShader: `varying vec3 vWP; varying float vC; void main(){ vC = color.r; vec4 w = modelMatrix * vec4(position, 1.0); vWP = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+  fragmentShader: `
+    uniform vec3 uColor; uniform float uLevel, uKick, uBass, uOn; varying vec3 vWP; varying float vC;
+    void main(){
+      float core = pow(vC, 1.5);                                   // bright centre, soft edges
+      float beat = 0.55 + uLevel * 0.6 + uKick * 1.5 + uBass * 0.4;
+      gl_FragColor = vec4(uColor * (0.35 + 0.65 * core) * beat * 1.6 * uOn, (core * 0.9 + 0.1) * uOn);   // only shown during a solo
+    }`,
+});
+
 // ---------------------------------------------------------------- touge road markings
 const TOUGE_RED = new THREE.Color('#c4473b'), TOUGE_ORANGE = new THREE.Color('#e08a2e'), TOUGE_WHITE = new THREE.Color('#efe9dc');
 const solid = c => out => out.copy(c);
@@ -1073,11 +1250,32 @@ const gatePostMat = new THREE.MeshStandardMaterial({ color: '#2b2b2b', roughness
 const gatePostGeo = shared(new THREE.CylinderGeometry(0.09, 0.09, 1.6, 6).translate(0, 0.8, 0));
 // clipping point: a glowing ring on the road at the target line, with a striped marker post at the road edge
 const clipRingGeo = shared(new THREE.RingGeometry(1.15, 1.55, 32).rotateX(-Math.PI / 2));
-const clipPostGeo = shared(new THREE.CylinderGeometry(0.12, 0.12, 2.4, 6).translate(0, 1.2, 0));
-const clipFlagGeo = shared(new THREE.PlaneGeometry(1.1, 0.7).translate(0.6, 2.05, 0));
-const clipPostMat = new THREE.MeshStandardMaterial({ color: '#f2efe6', roughness: 0.6 });
-const clipFlagMats = [new THREE.MeshStandardMaterial({ color: '#ff7a2f', emissive: '#ff7a2f', emissiveIntensity: 0.6, side: THREE.DoubleSide }),
-                      new THREE.MeshStandardMaterial({ color: '#2fb4ff', emissive: '#2fb4ff', emissiveIntensity: 0.6, side: THREE.DoubleSide })];
+const clipPostGeo = shared(new THREE.CylinderGeometry(0.05, 0.06, 5.7, 6).translate(0, 2.85, 0));
+// feather banner (like the drift-event flags at the roadside): a tall teardrop sail on a pole, ~5.5 m high
+const clipFlagGeo = shared((() => {
+  const sh = new THREE.Shape();
+  sh.moveTo(0.06, 0.9); sh.lineTo(0.06, 4.3); sh.quadraticCurveTo(1.0, 4.4, 1.08, 3.6); sh.quadraticCurveTo(1.0, 1.7, 0.06, 0.9);
+  const g = new THREE.ShapeGeometry(sh, 16), p = g.attributes.position, uv = g.attributes.uv;
+  for (let i = 0; i < p.count; i++) uv.setXY(i, p.getX(i) / 1.1, (p.getY(i) - 0.9) / 3.5);
+  return g.scale(1.3, 1.3, 1.3);
+})());
+const clipPostMat = new THREE.MeshStandardMaterial({ color: '#2b2b2e', roughness: 0.5 });
+function bannerTex(bg, edge) {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 512;
+  const g = c.getContext('2d');
+  g.fillStyle = bg; g.fillRect(0, 0, 128, 512);
+  g.fillStyle = edge; g.fillRect(0, 0, 14, 512);                                   // pole sleeve
+  g.fillStyle = '#fff6ea'; g.font = '900 64px "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('峠', 62, 410);
+  g.save(); g.translate(58, 230); g.rotate(-Math.PI / 2);
+  g.font = '800 46px "Helvetica Neue",Helvetica,Arial,sans-serif'; g.fillText('CLIP', 0, 0); g.restore();
+  g.strokeStyle = 'rgba(255,246,234,.85)'; g.lineWidth = 5; g.beginPath(); g.moveTo(30, 120); g.lineTo(30, 360); g.stroke();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+const clipFlagMats = [['#e8364f', '#9e1f33'], ['#2f8fe0', '#1d5a8f']].map(([bg, edge]) => {
+  const t = bannerTex(bg, edge);
+  return new THREE.MeshStandardMaterial({ map: t, emissiveMap: t, emissive: '#ffffff', emissiveIntensity: 0.35, side: THREE.DoubleSide, roughness: 0.8 });
+});
 const CLIP_IDLE = new THREE.Color('#ffb070').multiplyScalar(1.6), CLIP_OUTER = new THREE.Color('#7fd0ff').multiplyScalar(1.6);
 function buildClip(c) {
   const grp = new THREE.Group(), p = sample(c.s);
@@ -1086,7 +1284,9 @@ function buildClip(c) {
   const ring = new THREE.Mesh(clipRingGeo, c.mat); ring.position.copy(roadPoint(c.s, c.x, 0.05)); grp.add(ring);
   const edge = Math.sign(c.x) * 7.4, post = new THREE.Mesh(clipPostGeo, clipPostMat);
   post.position.copy(roadPoint(c.s, edge, 0)); post.castShadow = true; grp.add(post);
-  const flag = new THREE.Mesh(clipFlagGeo, clipFlagMats[c.outer ? 1 : 0]); flag.position.copy(post.position); flag.rotation.y = -p.h; grp.add(flag);
+  const flag = new THREE.Mesh(clipFlagGeo, clipFlagMats[c.outer ? 1 : 0]); flag.position.copy(post.position); flag.rotation.y = -p.h; flag.castShadow = true;
+  if (edge > 0) flag.scale.x = -1;                                              // the sail flares in toward the road on both sides
+  grp.add(flag);
   return grp;
 }
 function judgeClips(prevS) {
@@ -1292,7 +1492,7 @@ const stationWhite = new THREE.MeshStandardMaterial({ color: '#f1efe9', roughnes
 const stationOrange = new THREE.MeshStandardMaterial({ color: '#ef7a2c', roughness: 0.5, emissive: '#ef7a2c', emissiveIntensity: 0.25 });
 const canopyLight = new THREE.MeshStandardMaterial({ color: '#fff6e0', emissive: '#fff1d0', emissiveIntensity: 1 });
 const pumpMat = new THREE.MeshStandardMaterial({ color: '#d8432f', roughness: 0.5 });
-const LANE_GREEN = new THREE.Color('#47b36b'), PAD = new THREE.Color('#b9b5ac');
+const LANE_GREEN = new THREE.Color('#47b36b');
 const stationSignTex = (() => {
   const c = document.createElement('canvas'); c.width = 256; c.height = 384;
   const g = c.getContext('2d');
@@ -1318,8 +1518,9 @@ function addStations(g, i0, i1) {
     if (rc < i0 || rc >= i1) continue;
     ensurePath(rc + 20);
     const p = pts[rc], side = st.side, r0 = rc - STATION_LEN / 4, r1 = rc + STATION_LEN / 4;
-    // forecourt and the green-striped refuel lane on the road's outer edge
-    g.add(mesh(buildStrip(r0 - 4, r1 + 4, side > 0 ? [7, 21] : [-21, -7], (q, off) => surfY(q, side * 7) + 0.02, solid(PAD)), roadMat));
+    // forecourt: a level patch so the pumps and pillars stand flat, coloured like the region's own ground so it blends in
+    // (it used to be a grey slab that looked out of place in snow / grass / paddies); then the green-striped refuel lane
+    g.add(mesh(buildStrip(r0 - 4, r1 + 4, side > 0 ? [7, 21] : [-21, -7], (q, off) => surfY(q, side * 7) + 0.02, terrainColor), terrainMat));
     g.add(mesh(buildStrip(r0, r1, side > 0 ? [3.4, 6.6] : [-6.6, -3.4], (q, off) => surfY(q, off) + 0.03, solid(LANE_GREEN), i => i % 2 === 0), roadMat));
     // canopy straddling the outer lane, on four pillars
     const cy = surfY(p, side * 7) + 5.4, cpos = roadPoint(st.s, side * 8.6, 0);
@@ -1441,7 +1642,7 @@ function addJapaneseProps(g, i0, i1) {
 
 function buildChunk(k) {
   const i0 = k * CHUNK, i1 = i0 + CHUNK;
-  ensurePath(i1 + 20);
+  ensurePath(i1 + 140);   // far enough ahead that every gate and clipping point in this chunk has been found (sweepers are ~86 rows)
   const g = new THREE.Group();
   g.add(mesh(buildStrip(i0, i1, LEFT_COLS, terrainHeight, terrainColor), terrainMat));
   g.add(mesh(buildStrip(i0, i1, RIGHT_COLS, terrainHeight, terrainColor), terrainMat));
@@ -1456,10 +1657,16 @@ function buildChunk(k) {
     for (const [a, b] of [[-5.75, -3.7], [3.7, 5.75]]) g.add(mesh(buildStrip(i0, i1, [a, b], (p, off) => surfY(p, off) + 0.022, paint(TOUGE_RED), i => inTougeRow(i) && i % 2 === 0), roadMat));
     for (const o of [-3.6, 3.6]) g.add(mesh(buildStrip(i0, i1, [o - 0.07, o + 0.07], (p, off) => surfY(p, off) + 0.026, paint(TOUGE_WHITE), inTougeRow), roadMat));
     for (const o of [-0.17, 0.17]) g.add(mesh(buildStrip(i0, i1, [o - 0.07, o + 0.07], (p, off) => surfY(p, off) + 0.026, paint(TOUGE_ORANGE), inTougeRow), roadMat));
+    // glowing lines along both road edges (vertex red = brightness across the ribbon)
+    for (const c of [-RAINBOW_OFF, RAINBOW_OFF]) {
+      const cols = [c - 0.16, c, c + 0.16];
+      g.add(mesh(buildStrip(i0, i1, cols, (p, off) => surfY(p, off) + 0.05, (out, rel, off) => out.setRGB(Math.abs(off - c) < 0.01 ? 1 : 0, 0, 0), inTougeRow), rainbowMat, false, false));
+    }
   }
   // transition gates at every S-bend switch point (they pulse on the beat)
-  for (const f of flips) if (f >= i0 * STEP && f < i1 * STEP) g.add(buildGate(f));
-  for (const c of clips) if (c.s >= i0 * STEP && c.s < i1 * STEP) g.add(buildClip(c));
+  const onRoad = o => { o.traverse(m => { m.userData.onRoad = true; }); return o; };   // gates & clips keep their colour too
+  for (const f of flips) if (f >= i0 * STEP && f < i1 * STEP) g.add(onRoad(buildGate(f)));
+  for (const c of clips) if (c.s >= i0 * STEP && c.s < i1 * STEP) g.add(onRoad(buildClip(c)));
   // "TOUGE" painted across the road on the approach to each section
   for (const ts of tougeStartsIn(i0 * STEP - 200, i1 * STEP + 200)) {
     const r0 = Math.round((ts - 110) / STEP);
@@ -1511,6 +1718,7 @@ function buildChunk(k) {
   }
   for (const t in inst) if (inst[t].length) g.add(instanced(TREE_GEO[t], t === 'rock' ? rockMat : foliageMat, inst[t], cols[t]));
   if (trunks.length) g.add(instanced(trunkGeo, trunkMat, trunks));
+  g.traverse(o => { if (o.isMesh && (o.material === roadMat || o.material === tougeTextMat || o.userData.onRoad)) o.layers.enable(ROAD_LAYER); });
   scene.add(g);
   return g;
 }
@@ -1625,6 +1833,17 @@ function makeCar() {
   return car;
 }
 const car = makeCar();
+// suspension: everything but the wheels (and headlight) sits on a sprung body that pivots at axle height, so it can
+// roll in corners and pitch under braking while the wheels stay planted
+{
+  const body = new THREE.Group(), PIVOT_Y = 0.42;
+  body.position.y = PIVOT_Y;
+  for (const c of [...car.children]) {
+    if (car.userData.wheels.includes(c) || c === car.userData.head || c === car.userData.head.target) continue;
+    car.remove(c); c.position.y -= PIVOT_Y; body.add(c);
+  }
+  car.add(body); car.userData.body = body;
+}
 scene.add(car);
 
 // ---------------------------------------------------------------- cargo: rides in the truck bed
@@ -1693,7 +1912,7 @@ function cargoDamage(amount, why) {
   updateCargoHud();
   const el = $('cargo'); el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit');
   if (why) tagPop(why, '#f4a08c');
-  if (cargo <= 0) { flash('cargo destroyed', '#f4a08c'); state = 'wrecking'; setTimeout(() => { if (state === 'wrecking') endGame(false, 'cargo'); }, 1100); }
+  if (cargo <= 0) { flash('cargo destroyed', '#f4a08c'); wreck('cargo'); }
 }
 // past a damage threshold a piece of the load bounces out of the bed and tumbles down the road
 function dropCargoItem() {
@@ -1762,12 +1981,11 @@ const LANTERN_H = 1.4, LANTERN_SCALE = 1.35;   // scaled up so the shape and cal
 const lanternGeo = shared(new THREE.LatheGeometry(Array.from({ length: 17 }, (_, i) => { const t = i / 16; return new THREE.Vector2(0.3 + 0.32 * Math.sin(Math.PI * t), (t - 0.5) * LANTERN_H); }), 24));
 const capTopGeo = shared(new THREE.CylinderGeometry(0.31, 0.33, 0.14, 18).translate(0, LANTERN_H / 2 + 0.05, 0));
 const capBotGeo = shared(new THREE.CylinderGeometry(0.34, 0.3, 0.16, 18).translate(0, -LANTERN_H / 2 - 0.06, 0));
-const cordGeo = shared(new THREE.CylinderGeometry(0.018, 0.018, 1.3, 5).translate(0, LANTERN_H / 2 + 0.75, 0));
 // a lantern hangs from the top of its cord
 function makeLantern(band) {
   const pivot = new THREE.Group(), body = new THREE.Group();
   const paper = new THREE.Mesh(lanternGeo, lanternMats[band]); paper.castShadow = true;
-  body.add(paper, new THREE.Mesh(capTopGeo, lacquer), new THREE.Mesh(capBotGeo, lacquer), new THREE.Mesh(cordGeo, lacquer));
+  body.add(paper, new THREE.Mesh(capTopGeo, lacquer), new THREE.Mesh(capBotGeo, lacquer));   // no cord: it read as clutter from the chase cam
   body.position.y = -(LANTERN_H / 2 + 1.4);
   pivot.add(body); pivot.scale.setScalar(LANTERN_SCALE);
   pivot.userData = { body, paper };
@@ -1860,6 +2078,24 @@ function spawnNote(t, x, type, band, goldRun = null) {
 const GOLD_WINDOW_EARLY = 0.2, GOLD_WINDOW_LATE = 0.22;   // seconds around reaching the lantern that a tap counts
 let goldPlacing = null, goldNextAt = 0, goldSeen = false, tutGold = false;
 const goldRuns = [];
+// timing ring: a gold circle appears round each gold lantern and closes in; it reaches the lantern's outline
+// (and flashes white) exactly when it's time to tap Space
+const GOLD_APPROACH = 1.1, GOLD_RING_R = 1.2;
+const goldRingGeo = new THREE.RingGeometry(0.955, 1.0, 64);   // a thin line
+const goldRingMat = new THREE.MeshBasicMaterial({ color: '#ffd24a', transparent: true, opacity: 0, depthTest: false, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+function addGoldRing(n) { const r = new THREE.Mesh(goldRingGeo, goldRingMat.clone()); r.renderOrder = 6; r.frustumCulled = false; scene.add(r); n.ring = r; }
+function dropGoldRing(n) { if (!n.ring) return; scene.remove(n.ring); n.ring.material.dispose(); n.ring = null; }
+function updateGoldRing(n) {
+  if (!n.ring) return;
+  if (!n.gold || n.judged || n.dead) return dropGoldRing(n);
+  const dt = (n.s - carS) / Math.max(speed, 5), k = Math.min(1, Math.max(0, dt / GOLD_APPROACH));
+  const inWindow = dt <= GOLD_WINDOW_EARLY;
+  n.ring.position.copy(n.mesh.position); n.ring.position.y -= (LANTERN_H / 2 + 1.4) * LANTERN_SCALE;   // lantern centre
+  n.ring.quaternion.copy(camera.quaternion);
+  n.ring.scale.setScalar(GOLD_RING_R * (1 + 1.5 * k));
+  n.ring.material.opacity = dt > GOLD_APPROACH * 1.4 ? 0 : 0.12 + (1 - k) * 0.4;
+  n.ring.material.color.set(n.pressed ? '#9fe8b4' : inWindow ? '#fff1c4' : '#ffd24a');
+}
 function goldFor(t) {
   if (!run || (run.kind === 'tutorial' && !tutGold) || state !== 'playing') return null;
   if (!goldPlacing && t >= goldNextAt && twistAt(carS + 300) < 0.01 && twistAt(carS + 700) < 0.01) {
@@ -1874,9 +2110,6 @@ function goldPlaced(g, n) {
     goldPlacing = null; goldNextAt = (run ? ctx.currentTime : 0) + 30 + Math.random() * 15; return;
   }
   g.notes.push(n);
-  if (g.notes.length === 1) {
-    flash(goldSeen ? 'gold run' : 'gold run · tap Space as you hit each gold lantern', '#ffd24a'); goldSeen = true;
-  }
   if (g.notes.length >= g.need) { goldPlacing = null; goldNextAt = n.t + (tutGold ? 4 : 28 + Math.random() * 17); }
 }
 function revertGold(n) {
@@ -1911,7 +2144,7 @@ function goldHit(g, n) {
     // …and patches up the cargo (the percentage only: anything that fell off stays on the road)
     const fix = cargoOn ? Math.min(25, 100 - cargo) : 0;
     if (fix > 0) { cargo += fix; updateCargoHud(); }
-    flash(`GOLD RUN! ×2 · boost for 8s${fix > 0 ? ` · cargo +${Math.round(fix)}%` : ''}`, '#ffd24a'); SFX.perfect();
+    SFX.perfect();
     g.done = true;
   }
 }
@@ -1945,7 +2178,7 @@ function goldPress() {
   return notes.some(n => n.gold && !n.gold.failed && !n.judged && (n.s - carS) / Math.max(speed, 5) < 1.5);
 }
 function resetGold() { tutGold = false; goldPlacing = null; goldRuns.length = 0; goldNextAt = ctx ? ctx.currentTime + 12 : 12; }
-function clearNotes() { for (const n of notes) { scene.remove(n.mesh); if (n.fade) n.fade.forEach(c => c.dispose()); } notes.length = 0; }
+function clearNotes() { for (const n of notes) { dropGoldRing(n); scene.remove(n.mesh); if (n.fade) n.fade.forEach(c => c.dispose()); } notes.length = 0; }
 
 // ---------------------------------------------------------------- analysis (runs LOOKAHEAD ahead of playback)
 // 1. spectral flux -> onset strength envelope
@@ -2085,6 +2318,7 @@ function scheduleBeats(now) {
 }
 
 function placeNote(on, D) {
+  if (run && run.kind === 'drift') return;                           // drift mode: nothing to collect
   if (run && run.beats && !on.pre) return;                          // pre-analysed songs place their own (exact) beats
   const gap = on.t - lastNoteT;
   if (gap < 0.17) return;
@@ -2106,6 +2340,7 @@ function placeNote(on, D) {
     spawnNote(heardTime(on.t), Math.abs(bx - lastX) > 3 ? bx : -lastX, type, on.band);
   } else {
     const n = spawnNote(heardTime(on.t), x, type, on.band, goldRun);
+    if (goldRun && n) addGoldRing(n);
     if (goldRun) goldPlaced(goldRun, n);
     lastX = x;
   }
@@ -2128,7 +2363,7 @@ function consumeFrames(now, dt) {
 
 
 // ---------------------------------------------------------------- audio
-let ctx, analyser, delay, master, spec, prevSpec;
+let ctx, analyser, delay, master, spec, prevSpec, outBus, outLP;
 // ---------------------------------------------------------------- sound effects
 let sfx = null;
 function blip(type, freq, t0, attack, peak, dur, freqTo) {
@@ -2169,6 +2404,7 @@ const SFX = {
   okay() { if (!sfx) return; const t = ctx.currentTime; whoosh(t, 0.25, 600, 2400, 0.1); blip('sine', 880, t + 0.04, 0.005, 0.1, 0.45); blip('sine', 1318.5, t + 0.08, 0.005, 0.07, 0.4); },
   bad() { if (!sfx) return; const t = ctx.currentTime; blip('triangle', 140, t, 0.004, 0.25, 0.25, 70); },
   refuel() { if (!sfx) return; const t = ctx.currentTime; blip('sine', 660, t, 0.004, 0.04, 0.15); blip('sine', 990, t + 0.1, 0.004, 0.04, 0.3); },
+  alert() { if (!sfx) return; const t = ctx.currentTime; blip('square', 880, t, 0.004, 0.03, 0.12); blip('square', 660, t + 0.16, 0.004, 0.03, 0.14); },
   empty() { if (!sfx) return; const t = ctx.currentTime; blip('sawtooth', 110, t, 0.01, 0.06, 0.35, 60); },
 };
 
@@ -2186,13 +2422,67 @@ function makeSqueal() {
   const mix = ctx.createGain(); mix.gain.value = 1;
   src.connect(bp1).connect(mix); src.connect(bp2).connect(mix);
   squealGain = ctx.createGain(); squealGain.gain.value = 0;
-  mix.connect(squealGain).connect(ctx.destination);
+  mix.connect(squealGain).connect(outBus);
   src.start(); lfo.start();
 }
 function updateSqueal() {
   if (!squealGain) return;
-  const k = state === 'playing' && drifting && hopY < 0.15 ? Math.min(1, Math.abs(slide) * 1.1) * smooth(12, 45, speed) : 0;
+  const k = state === 'playing' && (drifting || spinT > 0) && hopY < 0.15 ? Math.min(1, (Math.abs(slide) + (spinT > 0 ? 0.9 : 0)) * 1.1) * smooth(12, 45, speed) : 0;
   squealGain.gain.setTargetAtTime(k * 0.22, ctx.currentTime, 0.06);   // light: the music stays on top
+}
+// engine: a little 3-cylinder kei motor. Fires 1.5× per revolution, so ~22 Hz at idle up to ~200 Hz at the
+// redline; two detuned saws + a sub through a low-pass that opens with revs and throttle, plus a breath of intake noise
+let eng = null;
+function makeEngine() {
+  const out = ctx.createGain(); out.gain.value = 0; out.connect(outBus);
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400; lp.Q.value = 2.2; lp.connect(out);
+  const oscs = [['sawtooth', 1, 0.5], ['sawtooth', 1.006, 0.4], ['square', 0.5, 0.35], ['sawtooth', 2, 0.12]].map(([type, mul, g]) => {
+    const o = ctx.createOscillator(); o.type = type; const gg = ctx.createGain(); gg.gain.value = g;
+    o.connect(gg).connect(lp); o.start(); return { o, mul };
+  });
+  const nb = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), nd = nb.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const ns = ctx.createBufferSource(); ns.buffer = nb; ns.loop = true;
+  const nbp = ctx.createBiquadFilter(); nbp.type = 'bandpass'; nbp.frequency.value = 900; nbp.Q.value = 0.8;
+  const ng = ctx.createGain(); ng.gain.value = 0; ns.connect(nbp).connect(ng).connect(out); ns.start();
+  eng = { out, lp, oscs, nbp, ng };
+}
+function updateEngine() {
+  if (!eng) return;
+  const t = ctx.currentTime, on = (state === 'playing' || state === 'paused') && fuel > 0;
+  const rpm = Math.max(800, rpmShown), f = rpm / 60 * 1.1,   // pitched a bit below a real 3-cyl's firing rate: deeper
+    r = (rpm - 800) / 7200, thr = pedal > 0 ? 1 : 0;
+  for (const { o, mul } of eng.oscs) o.frequency.setTargetAtTime(f * mul, t, 0.04);
+  eng.lp.frequency.setTargetAtTime(180 + r * 1100 + thr * 450, t, 0.06);
+  eng.nbp.frequency.setTargetAtTime(450 + r * 1100, t, 0.06);
+  eng.ng.gain.setTargetAtTime(0.03 + thr * 0.08 + r * 0.04, t, 0.08);
+  eng.out.gain.setTargetAtTime(on && state !== 'paused' ? 0.028 + r * 0.025 + thr * 0.012 : 0, t, on ? 0.1 : 0.25);   // well under the music
+}
+// refuelling: a pump hum and fuel glugging into the tank, rising in pitch as it fills; plays while you're in the lane
+let pump = null;
+function makePump() {
+  const out = ctx.createGain(); out.gain.value = 0; out.connect(outBus);
+  const hum = ctx.createOscillator(); hum.type = 'triangle'; hum.frequency.value = 118;
+  const humG = ctx.createGain(); humG.gain.value = 0.25; hum.connect(humG).connect(out); hum.start();
+  const trem = ctx.createOscillator(); trem.frequency.value = 9; const tremG = ctx.createGain(); tremG.gain.value = 0.1;
+  trem.connect(tremG).connect(humG.gain); trem.start();
+  const nb = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), nd = nb.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const ns = ctx.createBufferSource(); ns.buffer = nb; ns.loop = true;
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 650; bp.Q.value = 6;
+  const glug = ctx.createOscillator(); glug.frequency.value = 7.5; const glugG = ctx.createGain(); glugG.gain.value = 260;
+  glug.connect(glugG).connect(bp.frequency); glug.start();
+  const ng = ctx.createGain(); ng.gain.value = 1.4; ns.connect(bp).connect(ng).connect(out); ns.start();
+  pump = { out, bp, glug };
+}
+function updatePump() {
+  if (!pump) return;
+  const t = ctx.currentTime, on = state === 'playing' && refueling && fuel < 99.5;
+  pump.bp.frequency.setTargetAtTime(520 + fuel * 6, t, 0.2);                 // the tank fills, the note climbs
+  pump.glug.frequency.setTargetAtTime(6 + Math.random() * 4, t, 0.3);
+  pump.out.gain.setTargetAtTime(on ? 0.16 : 0, t, on ? 0.05 : 0.15);
+  if (pump.was && !on && refueling && fuel >= 99.5) SFX.refuel();             // nozzle clicks off: tank full
+  pump.was = on;
 }
 function ensureAudio() {
   if (!ctx) {
@@ -2200,10 +2490,13 @@ function ensureAudio() {
     analyser = ctx.createAnalyser(); analyser.fftSize = 1024; analyser.smoothingTimeConstant = 0.1;
     delay = ctx.createDelay(5); delay.delayTime.value = LOOKAHEAD;
     master = ctx.createGain(); master.gain.value = 0.9;
-    delay.connect(master).connect(ctx.destination);
+    // everything (music, effects, engine) ends in outBus: a low-pass + gain that low health / a wreck closes down
+    outLP = ctx.createBiquadFilter(); outLP.type = 'lowpass'; outLP.frequency.value = 20000; outLP.Q.value = 0.5;
+    outBus = ctx.createGain(); outBus.connect(outLP).connect(ctx.destination);
+    delay.connect(master).connect(outBus);
     spec = new Uint8Array(analyser.frequencyBinCount); prevSpec = new Float32Array(analyser.frequencyBinCount);
-    makeSqueal();
-    sfx = ctx.createGain(); sfx.gain.value = 0.55; sfx.connect(ctx.destination);
+    makeSqueal(); makeEngine(); makePump();
+    sfx = ctx.createGain(); sfx.gain.value = 0.55; sfx.connect(outBus);
   }
   if (ctx.state === 'suspended') ctx.resume();
 }
@@ -2249,17 +2542,60 @@ function makeDemo(kind = 'sakura') {
     const chords = [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]], roots = [41, 40, 38, 36], penta = [72, 74, 76, 79, 81, 84];
     const keys = (t0, ns, dur) => ns.forEach((m, i) => { tone('sine', m2f(m), t0 + i * 0.014, 0.012, 0.085, dur, 3000, 1); tone('triangle', m2f(m) * 2, t0 + i * 0.014, 0.006, 0.018, dur * 0.4, 2400, 1); });
     const snare = t0 => { noise(t0, 'bandpass', 1600, 0.22, 0.3); tone('triangle', 185, t0, 0.002, 0.16, 0.1, 2000); };
-    let mel = 2;
-    BARS = 56;   // intro 4 · groove 16 · break 4 · groove + melody 20 · break 4 · outro 8
+    let mel = 2, si = 3;
+    // the solo (bars 24–40): a mellow electric-piano lead that sits in the lo-fi mix — soft bell tone, slow vibrato,
+    // slides into held notes — over the song's own groove with a little extra shuffle in the hats
+    const soloScale = [67, 69, 72, 74, 76, 79, 81, 84];                  // C major / A minor pentatonic, G4–C6
+    const lead = (t0, m, dur, slide) => {
+      const f = m2f(m), g = ctx.createGain(), fl = ctx.createBiquadFilter();
+      fl.type = 'lowpass'; fl.Q.value = 0.7; fl.frequency.value = 2400;
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.062, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.03, t0 + Math.max(0.08, dur * 0.6)); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur + 0.25);
+      fl.connect(g); g.connect(bus); g.connect(send);
+      const vib = ctx.createOscillator(); vib.frequency.value = 4.8;
+      const vg = ctx.createGain(); vg.gain.setValueAtTime(0, t0); vg.gain.linearRampToValueAtTime(f * 0.006, t0 + Math.max(0.1, dur * 0.8));
+      vib.connect(vg);
+      for (const [type, mul, lvl, decay] of [['sine', 1, 1, 0], ['triangle', 1, 0.3, 0], ['sine', 2, 0.18, 0.25]]) {   // fundamental + a bell partial that fades fast
+        const o = ctx.createOscillator(); o.type = type;
+        if (slide) { o.frequency.setValueAtTime(f * mul * Math.pow(2, -1 / 12), t0); o.frequency.exponentialRampToValueAtTime(f * mul, t0 + 0.09); }
+        else o.frequency.setValueAtTime(f * mul, t0);
+        vg.connect(o.frequency);
+        const og = ctx.createGain(); og.gain.setValueAtTime(lvl, t0); if (decay) og.gain.exponentialRampToValueAtTime(0.001, t0 + decay);
+        o.connect(og).connect(fl); o.start(t0); o.stop(t0 + dur + 0.3);
+      }
+      vib.start(t0); vib.stop(t0 + dur + 0.3);
+    };
+    // phrases: [step, length in 16ths, slide-in?] — laid back, with room between lines
+    const RIFFS = [
+      [[0, 3, 1], [3, 1], [4, 2], [6, 2], [10, 2], [12, 4]],
+      [[2, 2], [4, 2], [6, 1], [7, 1], [8, 4, 1], [14, 2]],
+      [[0, 2], [2, 2], [4, 4, 1], [10, 1], [11, 1], [12, 2], [14, 2]],
+      [[0, 6, 1], [8, 2], [10, 2], [12, 4]],
+    ];
+    const LIFT = Array.from({ length: 8 }, (_, k) => [k * 2, 2]);           // last two bars: a gentle climb in 8ths
+    BARS = 56;   // intro 4 · groove 16 · break 4 · SOLO 16 · groove + melody 4 · break 4 · outro 8
     pattern = (s, bar, tt) => {
       const ci = bar % 4, intro = bar < 4, brk = (bar >= 20 && bar < 24) || (bar >= 44 && bar < 48), outro = bar >= 48, drums = !intro && !brk;
+      const solo = bar >= 24 && bar < 40, sb = bar - 24;
+      if (solo) {
+        // a touch more motion than the verses: soft 16th shaker, ghost snare, bass passing note — same volume
+        if (s % 2 === 1) noise(tt, 'highpass', 8500, 0.03, 0.018);
+        if (s === 15 && bar % 2) noise(tt, 'bandpass', 1700, 0.06, 0.05);
+        if (s === 14) tone('sine', m2f(roots[(ci + 1) % 4] + 12), tt, 0.01, 0.3, s16 * 2, 400);
+        const riff = bar >= 38 ? LIFT : RIFFS[sb % 4], hit = riff.find(r => r[0] === s);
+        if (hit) {
+          const centre = 2 + Math.floor(sb / 4), up = bar >= 38;
+          si = up ? Math.min(soloScale.length - 1, si + 1) : Math.max(0, Math.min(soloScale.length - 1, si + pick([-1, -1, 1, 1, 2, -2]) + Math.sign(centre - si)));
+          lead(tt, soloScale[si], s16 * hit[1], !!hit[2]);
+        }
+      }
       if (s === 0) keys(tt, chords[ci], s16 * 10);
       if (s === 10 && !intro) keys(tt, chords[ci].slice(1), s16 * 6);
       if (drums && (s === 0 || s === 8 || (s === 10 && bar % 2 === 1 && !outro))) kick(tt, outro ? 0.7 : 0.9);
       if (drums && !outro && (s === 4 || s === 12)) snare(tt);
       if ((drums || bar >= 2) && s % 2 === 0) noise(tt, 'highpass', 7500, 0.04, s % 4 === 2 ? 0.06 : 0.03);
       if (drums && bar < 52 && (s === 0 || s === 7 || s === 10)) tone('sine', m2f(roots[ci] + (s === 7 ? 12 : 0)), tt, 0.01, 0.42, s16 * (s === 0 ? 6 : 3), 400);
-      const melody = (bar >= 24 && bar < 44) || brk || (bar >= 8 && bar < 20 && bar % 2 === 1);
+      const melody = (bar >= 40 && bar < 44) || brk || (bar >= 8 && bar < 20 && bar % 2 === 1);
       if (melody && [2, 6, 11, 14].includes(s) && Math.random() < 0.55) {
         mel = Math.max(0, Math.min(penta.length - 1, mel + pick([-1, 1, -2, 2])));
         tone('triangle', m2f(penta[mel]), tt, 0.003, 0.07, 0.7, 2400, 1);
@@ -2326,13 +2662,13 @@ const LEVELS = [
 ];
 let bests = {};
 try { bests = JSON.parse(localStorage.getItem('beatroad-best') || '{}'); } catch {}
-function showBests() { LEVELS.forEach((L, i) => { $('best' + i).textContent = bests[i] ? 'best ' + bests[i].toLocaleString() : ''; }); }
+function showBests() { LEVELS.forEach((L, i) => { $('best' + i).textContent = bests[i] ? 'best ' + bests[i].toLocaleString() : ''; }); $('bestDrift').textContent = bests.drift ? 'best ' + bests.drift.toLocaleString() : ''; }
 // rebuild the road from scratch for a level (or the free drive through every region)
 function resetWorld(lb) {
   levelBiome = lb;
   for (const [, g] of chunks) disposeChunk(g);
   chunks.clear(); pts.length = 0; flips.length = 0; clips.length = 0;
-  bridgeCache.clear(); stationCache.clear();
+  bridgeCache.clear(); stationCache.clear(); randTouges.clear(); for (const t of scheduled) t.plan = null;
   clearTraffic(); clearNotes();
   for (const d of debris) for (const pc of d.pieces) scene.remove(pc.m);
   debris.length = 0;
@@ -2409,10 +2745,12 @@ function resetRun() {
 }
 
 function startGame(kind, node, label, extra = {}) {
+  parked = false; runOff = null; spinT = 0;
   // analysed songs (levels, CDs) get their 峠 from the solo; everything else uses the random passes
   const songMode = kind === 'cd' || kind === 'demo';
   if (typeof extra.level !== 'number' && (BIOME_LEN !== 1700 || regionPlan)) { BIOME_LEN = 1700; regionPlan = null; if (extra.level === undefined) levelBiome = 0; }   // forces the reset below
-  if (typeof extra.level !== 'number' && (songMode || tougeMode === 'song')) {
+  if (kind === 'drift') { /* world + schedule already set up by startDriftMode */ }
+  else if (typeof extra.level !== 'number' && (songMode || tougeMode === 'song')) {
     tougeMode = songMode ? 'song' : 'random'; scheduled.length = 0;
     resetWorld(extra.level === undefined ? -1 : levelBiome);
   } else if (extra.level === undefined && levelBiome !== -1) resetWorld(-1);
@@ -2423,7 +2761,7 @@ function startGame(kind, node, label, extra = {}) {
   state = 'playing';
   document.activeElement?.blur?.();
   $('menu').classList.add('hidden'); $('results').classList.add('hidden');
-  $('hud').classList.remove('hidden'); $('ready').classList.remove('hidden');
+  $('hud').classList.remove('hidden');
   $('srcLabel').textContent = label;
   showStage(BIOMES[levelBiome >= 0 ? levelBiome : regionAt(currentRegion)]);
   $('progress').style.visibility = run.duration ? 'visible' : 'hidden';
@@ -2435,14 +2773,16 @@ function endGame(toMenu = false, reason = false) {   // reason: true / 'wreck' =
   const wrecked = !!reason;
   if (!run) return;
   const r = run; run = null;
-  if (tut) { tut = null; $('tut').className = ''; }
+  if (tut) { tut = null; $('tut').className = ''; tutEnd(); }
   try { r.node.disconnect(); } catch {}
   r.stop?.();
   endDrift('quit'); if (chain.active) bankChain(); clearNotes(); clearTraffic(); bonusT = 0;
   state = 'menu';
   $('hud').classList.add('hidden'); $('pause').classList.add('hidden'); $('stage').classList.remove('show');
   if (toMenu) { car.userData.load.visible = false; cargoOn = false; $('menu').classList.remove('hidden'); return; }
-  const total = stats.hits + stats.misses, ratio = total ? stats.hits / total : 0;
+  const total = stats.hits + stats.misses;
+  // drift mode has no lanterns: grade it on the share of perfect transitions instead
+  const ratio = r.kind === 'drift' ? (stats.transitions ? (stats.perfects || 0) / stats.transitions : 0) : total ? stats.hits / total : 0;
   // cargo: delivered intact = up to +5,000, and a battered load costs you a grade
   let cargoRows = [];
   if (r.cargo) {
@@ -2455,15 +2795,15 @@ function endGame(toMenu = false, reason = false) {   // reason: true / 'wreck' =
   let gi = ratio > 0.95 && !stats.carHits ? 0 : ratio > 0.88 ? 1 : ratio > 0.75 ? 2 : ratio > 0.6 ? 3 : 4;
   if (r.cargo && cargo < 60) gi = Math.min(4, gi + (cargo < 30 ? 2 : 1));
   const grade = GR[gi];
-  $('grade').textContent = wrecked ? '✕' : grade;
-  $('resultsTitle').textContent = reason === 'gas' ? 'Out of gas' : reason === 'cargo' ? 'Cargo destroyed' : wrecked ? 'Wrecked' : r.cargo ? 'Delivered!' : 'End of the road';
+  $('grade').textContent = wrecked && r.kind !== 'drift' ? '✕' : grade;
+  $('resultsTitle').textContent = reason === 'wall' ? 'Into the wall' : reason === 'gas' ? 'Out of gas' : reason === 'cargo' ? 'Cargo destroyed' : wrecked ? 'Wrecked' : r.cargo ? 'Delivered!' : r.kind === 'drift' ? 'Drift session' : 'End of the road';
   $('stats').innerHTML = [
     ...cargoRows,
     ['Score', stats.score.toLocaleString()], ['Yen', '¥' + (stats.yen || 0).toLocaleString()], ['Pickups', `${stats.hits}/${total}`], ['Accuracy', `${Math.round(ratio * 100)}%`],
     ['Best multiplier', '×' + stats.maxMult], ['Best chain', (stats.bestChain || 0).toLocaleString()], ['Near misses', stats.nearMisses || 0], ['Clips hit', stats.clips || 0], ['Best drift', stats.bestDrift.toLocaleString()], ['Drift points', stats.driftTotal.toLocaleString()],
     ...(stats.goldRuns ? [['Gold runs', `${stats.goldOk || 0}/${stats.goldRuns}`]] : []), ...(stats.soloPcts && stats.soloPcts.length ? [['Solo' + (stats.soloPcts.length > 1 ? 's' : ''), stats.soloPcts.map(v => v + '%').join(' · ')]] : []), ['Transitions', `${stats.perfects || 0} perfect / ${stats.transitions || 0}`], ['Cars hit', stats.carHits || 0], ['Wall scrapes', stats.wallHits || 0], ['Fuel stops', stats.fuelStops || 0], ...(stats.tracks ? [['Tracks', stats.tracks]] : []),
   ].map(([l, v]) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
-  if (r.level !== undefined && !wrecked && stats.score > (bests[r.level] || 0)) {
+  if (r.level !== undefined && (!wrecked || r.kind === 'drift') && stats.score > (bests[r.level] || 0)) {
     bests[r.level] = stats.score;
     try { localStorage.setItem('beatroad-best', JSON.stringify(bests)); } catch {}
     $('resultsTitle').textContent += ' · new best!';
@@ -2498,61 +2838,24 @@ function updateHud() {
 
 // ---------------------------------------------------------------- health
 let health = 100, wallCD = 0, hpHitTimer = 0;
-// ---------------------------------------------------------------- gauge cluster (SVG): digital, '80s hatchback style
-// fuel bar · segment tachometer · 7-segment speed · car-health bar · warning lamps
-const SPEEDO_MAX = 220, TACH_SEGS = 44, BAR_SEGS = 12, RPM_MAX = 8000;
-// 7-segment digit: a top, b top-right, c bottom-right, d bottom, e bottom-left, f top-left, g middle
-const SEG7 = { 0: 'abcdef', 1: 'bc', 2: 'abged', 3: 'abgcd', 4: 'fgbc', 5: 'afgcd', 6: 'afgedc', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg' };
-function seg7(x, y, w, h, id) {
-  const t = w * 0.17, sk = (yy) => (x + (y + h - yy) * 0.12).toFixed(1);   // slight italic slant
-  const hseg = (yy) => { const x0 = +sk(yy); return `M${x0 + t * 0.6} ${yy} L${x0 + w - t * 0.6} ${yy} L${x0 + w - t * 1.1} ${yy + t * 0.5} L${x0 + t * 1.1} ${yy + t * 0.5} L${x0 + t * 0.6} ${yy}Z`; };
-  const hsegC = (yy) => { const x0 = +sk(yy); return `M${x0 + t * 0.6} ${yy} L${x0 + t * 1.1} ${yy - t * 0.45} L${x0 + w - t * 1.1} ${yy - t * 0.45} L${x0 + w - t * 0.6} ${yy} L${x0 + w - t * 1.1} ${yy + t * 0.45} L${x0 + t * 1.1} ${yy + t * 0.45}Z`; };
-  const vseg = (xo, y0, y1) => { const a = +sk(y0) + xo, b = +sk(y1) + xo; return `M${a} ${y0 + t * 0.7} L${a + t} ${y0 + t * 1.2} L${b + t} ${y1 - t * 1.2} L${b} ${y1 - t * 0.7}Z`; };
-  const m = y + h / 2, P = {
-    a: hseg(y), d: hseg(y + h - t * 0.5), g: hsegC(m),
-    f: vseg(0, y, m), e: vseg(0, m, y + h), b: vseg(w - t, y, m), c: vseg(w - t, m, y + h),
-  };
-  return Object.entries(P).map(([n, d]) => `<path class="d7" data-s="${n}" d="${d}"/>`).join('').replace(/<path/g, `<path data-d="${id}"`);
-}
-let clusterEls = null, rpmShown = 900, lastSpeedoT = 0, tachLit = -1;
+// ---------------------------------------------------------------- gauge cluster: speed, gear, a rev bar, fuel + car bars
+const RPM_MAX = 8000;
+let rpmShown = 900, lastSpeedoT = 0, shownKmh = -1, shownGear = -1;
 function buildCluster() {
-  let o = '';
-  o += `<rect class="panel" x="6" y="6" width="388" height="124" rx="10"/>`;
-  // fuel (left) and car health (right): plain segment bars
-  const bar = (x, title, cls) => {
-    let b = '';
-    for (let i = 0; i < BAR_SEGS; i++) b += `<rect class="seg bar ${cls}" x="${x}" y="${100 - i * 7}" width="16" height="5"/>`;
-    return b + `<text class="silk sm" x="${x + 8}" y="116" text-anchor="middle">${title}</text>`;
-  };
-  o += bar(22, 'FUEL', 'fuelSeg') + bar(362, 'CAR', 'carSeg');
-  // tach: a sweep of segments rising from bottom-left and flattening out to the right, numbers on the inside
-  const B = (t) => { const u = 1 - t; return [u * u * 66 + 2 * u * t * 96 + t * t * 336, u * u * 104 + 2 * u * t * 34 + t * t * 36]; };
-  for (let i = 0; i < TACH_SEGS; i++) {
-    const t = i / (TACH_SEGS - 1), [x, y] = B(t), [x2, y2] = B(Math.min(1, t + 0.01)), ang = Math.atan2(y2 - y, x2 - x) * 180 / Math.PI;
-    const len = 6 + t * 8, rpm = t * RPM_MAX, cls = rpm >= 7000 ? 'red' : rpm >= 6000 ? 'amber' : '';
-    o += `<rect class="seg tach ${cls}" x="-1.7" y="0" width="3.4" height="${len.toFixed(1)}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${ang.toFixed(1)}) translate(0 ${(-len).toFixed(1)})"/>`;
-  }
-  for (let r = 0; r <= 8; r++) {
-    const t = r / 8, [x, y] = B(t), [x2, y2] = B(Math.min(1, t + 0.01)), ang = Math.atan2(y2 - y, x2 - x), nx = Math.sin(ang), ny = -Math.cos(ang);
-    o += `<text class="silk num${r >= 7 ? ' red' : ''}" x="${(x - nx * 9).toFixed(1)}" y="${(y - ny * 9).toFixed(1)}">${r}</text>`;
-  }
-  o += `<text class="silk sm" x="96" y="100">RPM ×1000</text>`;
-  // speed: big 7-segment digits
-  for (let i = 0; i < 3; i++) o += seg7(212 + i * 26, 58, 20, 30, i);
-  o += `<text class="silk" x="294" y="86" style="fill:#4dff8f;font-size:9px">km/h</text>`;
-  // warning lamps
-  const lamps = [['lampFuel', 'LOW FUEL', 120], ['lampCheck', 'CHECK', 175], ['lampLock', '峠 LOCK', 230], ['lampBoost', 'BOOST', 282]];
-  for (const [id, txt, x] of lamps) o += `<text class="lamp" id="${id}" x="${x}" y="120">${txt}</text>`;
-  $('cluster').innerHTML = `<svg viewBox="0 0 400 136">${o}</svg>`;
-  const q = sel => [...$('cluster').querySelectorAll(sel)];
-  clusterEls = { tach: q('.tach'), fuel: q('.fuelSeg'), car: q('.carSeg'), digits: [0, 1, 2].map(i => q(`[data-d="${i}"]`)) };
+  $('cluster').innerHTML = `<div id="lampLock">峠 lock</div>
+    <div class="clTop"><div class="clSpeed"><span id="spdNum">0</span><span class="clUnit">km/h</span></div>
+      <div class="clGear"><span id="gearNum">1</span><span class="clUnit">gear</span></div></div>
+    <div class="clRpm"><div class="clRedline"></div><div id="rpmFill"></div></div>
+    <div class="clBars"><div class="clBar" id="clFuel"><span class="clLbl">FUEL</span><div class="clTrack"><div id="fuelFill"></div></div></div>
+      <div class="clBar" id="clCar"><span class="clLbl">CAR</span><div class="clTrack"><div id="carFill"></div></div></div></div>`;
 }
-const lamp = (id, on, col) => $(id).setAttribute('class', 'lamp' + (on ? ` on ${col}` : ''));
-function fillBar(segs, frac, lowAt, critAt) {
-  const n = Math.ceil(frac * BAR_SEGS - 0.01);
-  segs.forEach((el, i) => el.setAttribute('class', `seg bar ${el.classList[2]}` + (i < n ? ' on' + (frac <= critAt ? ' crit' : frac <= lowAt ? ' low' : '') : '')));
+const lamp = (id, on, col) => { const el = $(id); if (el) el.classList.toggle('on', !!on); };
+function fillBar(el, frac, lowAt, critAt) {
+  el = $(el); if (!el) return;
+  el.style.width = (Math.max(0, Math.min(1, frac)) * 100).toFixed(1) + '%';
+  el.className = frac <= critAt ? 'crit' : frac <= lowAt ? 'low' : '';
 }
-// engine revs from a simple 5-speed: each gear sweeps the tach, a shift drops it back
+// engine revs from a simple 5-speed: each gear sweeps the rev bar, a shift drops it back
 const GEAR_TOPS = [48, 86, 124, 164, 205, 240];
 function updateSpeedo() {
   const now = performance.now() / 1000, dt = Math.min(0.1, now - (lastSpeedoT || now)); lastSpeedoT = now;
@@ -2562,15 +2865,12 @@ function updateSpeedo() {
   let rpm = g ? 3300 + f * 4100 : 900 + f * 6500;
   if (drifting) rpm += 900; if (pedal > 0) rpm += 250;
   rpmShown += (Math.min(RPM_MAX - 100, rpm) - rpmShown) * Math.min(1, dt * 10);
-  const lit = Math.round(rpmShown / RPM_MAX * TACH_SEGS);
-  if (lit !== tachLit) { tachLit = lit; clusterEls.tach.forEach((el, i) => el.classList.toggle('on', i < lit)); }
-  const str = String(Math.min(999, kmh)).padStart(3, ' ');
-  for (let i = 0; i < 3; i++) {
-    const ch = str[i], on = ch === ' ' ? '' : SEG7[ch];
-    for (const el of clusterEls.digits[i]) el.classList.toggle('on', on.includes(el.dataset.s));
-  }
-  lamp('lampLock', tougeLocked, 'amber');
-  lamp('lampBoost', bonusT > 0, 'green');
+  const r = rpmShown / RPM_MAX, fill = $('rpmFill');
+  fill.style.width = (r * 100).toFixed(1) + '%';
+  fill.className = r >= 0.875 ? 'red' : r >= 0.75 ? 'hi' : '';
+  if (kmh !== shownKmh) { shownKmh = kmh; $('spdNum').textContent = kmh; }
+  if (g !== shownGear) { shownGear = g; $('gearNum').textContent = g + 1; }
+  lamp('lampLock', tougeLocked);
 }
 buildCluster();
 
@@ -2579,39 +2879,93 @@ let fuel = 100, refueling = false, wasEmpty = false, lowWarned = false;
 const fuelRate = v => 0.22 + Math.pow(v / MAX_SPEED, 2) * 1.6;     // % per second: ~0.55 at cruise (a full tank lasts ~3 min), ~1.8 flat out
 function setFuel(v) {
   fuel = Math.max(0, Math.min(100, v));
-  fillBar(clusterEls.fuel, fuel / 100, 0.25, 0.1);
+  fillBar('fuelFill', fuel / 100, 0.25, 0.1);
   lamp('lampFuel', fuel <= 20, 'amber blink');
 }
 function updateFuel(dt) {
   if (state !== 'playing') return;
+  if (run && run.kind === 'drift') { if (fuel < 100) setFuel(100); return; }   // drift mode has no gas stations
   const st = stationAt(carS);
   refueling = !!st && lateral * st.side > 3.0;                       // drive through the marked lane under the canopy
   if (refueling) {
-    if (fuel < 99.5 && Math.floor((fuel + 45 * dt) / 25) > Math.floor(fuel / 25)) SFX.refuel();
     setFuel(fuel + 45 * dt);
     if (!st.used) { st.used = true; stats.fuelStops = (stats.fuelStops || 0) + 1; tagPop('refueling', '#ffe1a3'); }
   } else setFuel(fuel - fuelRate(speed) * dt);
   if (run && run.kind === 'tutorial' && fuel < 12) setFuel(12);         // …or strands you
   if (fuel <= 0 && !wasEmpty) { wasEmpty = true; flash('engine stalled · coast to a station!', '#f4a08c'); SFX.empty(); }
   if (fuel > 5) wasEmpty = false;
-  if (fuel < 25 && !lowWarned) { lowWarned = true; const nx = nextStation(); tagPop(nx ? `low fuel · station in ${Math.round((nx.s - carS) / 10) * 10} m` : 'low fuel', '#f4a08c'); }
+  if (fuel < 25 && !lowWarned) lowWarned = true;
   if (fuel > 40) lowWarned = false;
 }
 function setHealth(v) {
   health = Math.max(0, Math.min(100, v));
-  fillBar(clusterEls.car, health / 100, 0.5, 0.28);
+  fillBar('carFill', health / 100, 0.5, 0.28);
 }
+// warnings: blinking dashboard lamps next to the truck — fuel when the tank is low, check-engine when health is (plus engine smoke)
+let alertFuelOn = false, alertHealthOn = false;
+function updateAlerts() {
+  const play = state === 'playing';
+  const lowFuel = play && fuel <= 20 && !refueling, lowHealth = play && health <= 30;
+  if (lowFuel !== alertFuelOn) { alertFuelOn = lowFuel; $('fuelIcon').classList.toggle('on', lowFuel); if (lowFuel) SFX.alert(); }
+  if (lowHealth !== alertHealthOn) { alertHealthOn = lowHealth; $('engineIcon').classList.toggle('on', lowHealth); if (lowHealth) SFX.alert(); }
+}
+// a hurt truck drives worse: lower top speed, weaker acceleration, slower/heavier steering, and once it's badly
+// damaged the alignment goes and it pulls to one side (picked when it happens) until you repair it
+const dmg = () => Math.max(0, 1 - health / 100);
+const topSpeed = () => MAX_SPEED * (1 - 0.32 * Math.pow(dmg(), 1.2));       // full health 92 → ~63 at 0
+const PULL_FROM = 40, PULL_CLEAR = 45;                                       // health where the pull starts / where a repair cures it
+let pullDir = 0;
+// the run is over (wrecked / out of gas / cargo gone): the truck rolls to a stop and sits there, smoking, while the
+// music drops to a faint, muffled bed for a few seconds before the results come up
+const WRECK_HOLD = 3.2;
+let runOff = null;   // drift mode: set when a gate is missed — the truck slides wide into the wall
+let parked = false;   // the wrecked truck stays put behind the results screen until you go back to the menu
+function wreck(reason) {
+  if (state !== 'playing') return;
+  state = 'wrecking'; endDrift('crash');
+  setTimeout(() => { if (state === 'wrecking') { parked = true; endGame(false, reason); } }, WRECK_HOLD * 1000);
+}
+// body roll + pitch: a spring-damper leans the sprung body away from the truck's acceleration — outward in corners
+// (sideways speed changes + the bend's own pull, speed²·curvature), more in drifts and S-bend flicks; nose down under
+// braking, squat on throttle. Soft springs: it overshoots a touch and settles.
+const ROLL_MAX = 0.16, PITCH_MAX = 0.06;
+let roll = 0, rollV = 0, pitch = 0, pitchV = 0, aSide = 0, aFwd = 0, prevLatV = 0, prevSpd = 0;
+function updateBodyRoll(dt) {
+  const body = car.userData.body;
+  if (!body || dt <= 0) return;
+  const kap = (sample(carS + 2).h - sample(carS - 2).h) / 4;
+  const side = (latVel - prevLatV) / dt + speed * speed * kap, fwd = (speed - prevSpd) / dt;
+  prevLatV = latVel; prevSpd = speed;
+  const k = 1 - Math.exp(-dt / 0.08);                                        // smooth out frame-to-frame jitter
+  aSide += (THREE.MathUtils.clamp(side, -60, 60) - aSide) * k; aFwd += (THREE.MathUtils.clamp(fwd, -60, 60) - aFwd) * k;
+  const rollT = THREE.MathUtils.clamp(aSide * 0.0075 * (drifting ? 1.35 : 1), -ROLL_MAX, ROLL_MAX);   // +z: right side up = lean left
+  const pitchT = THREE.MathUtils.clamp(aFwd * 0.004, -PITCH_MAX, PITCH_MAX);                         // +x: nose up
+  rollV += ((rollT - roll) * 70 - rollV * 9) * dt; roll += rollV * dt;
+  pitchV += ((pitchT - pitch) * 60 - pitchV * 10) * dt; pitch += pitchV * dt;
+  roll = THREE.MathUtils.clamp(roll, -ROLL_MAX * 1.2, ROLL_MAX * 1.2);
+  body.rotation.set(pitch, 0, roll);
+}
+// the solo look (grey world, closer camera, glowing edge lines) is for solos only: a level's solo 峠, or in drift
+// mode while the song's solo is playing
+function soloActive() {
+  if (tougeAt(carS + 20)?.solo) return true;
+  if (run && run.soloWin && state === 'playing') { const n = ctx.currentTime; return n >= run.soloWin[0] && n <= run.soloWin[1]; }
+  return false;
+}
+const songSoloWin = song => [heardTime(song.start + song.soloBars[0] * song.barLen), heardTime(song.start + song.soloBars[1] * song.barLen)];
 function damage(amount) {
   if (state !== 'playing') return;
   setHealth(health - amount);
   cargoDamage(amount * 0.8);
+  for (const g of goldRuns) if (!g.failed && !g.done) goldFail(g, 'gold run lost');   // any hit (car, wall) voids a gold run in progress
+  speed = Math.max(MIN_SPEED, speed * (1 - Math.min(0.5, amount * 0.02)));   // the hit scrubs speed: car ~44% (22 dmg), wall scrape ~14%
   if (run && run.kind === 'tutorial') setHealth(Math.max(health, 25));   // the tutorial never wrecks you
   if (mult() > 1) { tagPop('multiplier lost', '#f4a08c'); $('multRing').classList.remove('lost'); void $('multRing').offsetWidth; $('multRing').classList.add('lost'); }
   loseChain();
   stats.combo = 0; updateHud();
   fx.flash = Math.max(fx.flash, 0.3); fx.tint.set('#c8402e'); fx.desat = Math.max(fx.desat, 0.35);
   $('cluster').classList.add('hit'); lamp('lampCheck', true, 'red'); clearTimeout(hpHitTimer); hpHitTimer = setTimeout(() => { $('cluster').classList.remove('hit'); lamp('lampCheck', false); }, 600);
-  if (health <= 0) { flash('wrecked', '#f4a08c'); state = 'wrecking'; setTimeout(() => { if (state === 'wrecking') endGame(false, true); }, 900); }
+  if (health <= 0) wreck(true);
 }
 const heal = amount => setHealth(health + amount);
 
@@ -2633,7 +2987,11 @@ function trackTougeSection(prevS) {
     const att = attemptedFlips.find(af => Math.abs(af.s - f) < 6);
     secScore += att ? att.score : 0;
     // drove through without even trying a transition: the gate flashes red
-    if (state === 'playing' && !att) { gateFlash.color.set('#ff4030'); gateFlash.t = 1; tagPop('missed gate', '#f4a08c'); }
+    if (state === 'playing' && !att) {
+      gateFlash.color.set('#ff4030'); gateFlash.t = 1; tagPop('missed gate', '#f4a08c');
+      // drift mode: no free pass — miss the flick, lose the drift, and the truck carries on into the outside of the bend
+      if (run && run.kind === 'drift' && !runOff) { runOff = { dir: -Math.sign(kappaAt(f + 15)) || 1 }; failDrift(null); }
+    }
   }
   const now = twistAt(carS) > 0.5;
   if (now && !inTouge) { secSolo = !!tougeAt(carS)?.solo; secFlips = 0; secPerfects = 0; secScore = 0; secClips = secGreatClips = secClipScore = 0; perfectFlips.length = 0; attemptedFlips.length = 0; }
@@ -2641,22 +2999,17 @@ function trackTougeSection(prevS) {
     // clips count for about a third of a transition: they stretch or trim the boost more than they gate it
     const items = secFlips + CLIP_WEIGHT * secClips, top = secPerfects + CLIP_WEIGHT * secGreatClips;
     const topShare = top / items, accuracy = (secScore + CLIP_WEIGHT * secClipScore) / items, pct = Math.round(accuracy * 100);
-    const detail = `transitions ${secPerfects}/${secFlips} · clips ${secGreatClips}/${secClips}`;
     // a solo pays out on its own, graded like Rock Band's solo meter
-    let soloTxt = '';
     if (secSolo) {
       const sb = pct * 25;
       stats.score += sb; (stats.soloPcts = stats.soloPcts || []).push(pct); updateHud();
       if (pct >= 100) speedBurst();                              // perfect solo: same speed boost as a full gold run
-      soloTxt = `${pct >= 100 ? 'Perfect solo!' : pct >= 90 ? 'Awesome solo!' : pct >= 75 ? 'Great solo!' : pct >= 60 ? 'Good solo' : 'Messy solo'} +${sb.toLocaleString()} · `;
     }
     if (secFlips >= 2 && topShare >= BOOST_MIN_PERFECT) {
       bonusLen = Math.max(3, Math.round(BOOST_MAX_TIME * accuracy));
       bonusT = bonusLen; setTimeout(updateHud, 0); setTimeout(updateHud, bonusLen * 1000 + 100);
-      flash(`${soloTxt}${secPerfects === secFlips && secGreatClips === secClips ? 'flawless 峠' : '峠 boost'} · ×2 for ${bonusLen}s · ${pct}% accuracy`, '#7fe9a0');
-      tagPop(detail, '#7fe9a0');
       fx.flash = 0.6; fx.punch = 0.08; fx.tint.set('#46e07a');
-    } else { flash(`${soloTxt}峠 cleared · ${pct}% · need 60% top grades for a boost`, secSolo ? '#ffd77a' : '#fff6e4'); tagPop(detail, '#fff6e4'); }
+    }
   }
   inTouge = now;
 }
@@ -2764,7 +3117,7 @@ function updateTraffic(dt) {
     t.prevDs = ds;
     if (!t.hit && Math.abs(ds) < (t.mesh.userData.len / 2 + 2.0) && Math.abs(dx) < 1.95 && hopY < 0.6) {
       t.hit = true; t.vx = Math.sign(dx || 1) * 9; t.v *= 0.4;
-      damage(22); shake = 0.8; slow = 0.5; stats.carHits = (stats.carHits || 0) + 1; endDrift('crash'); flash('crash', '#f4a08c');
+      damage(22); shake = 0.8; slow = 0.5; stats.carHits = (stats.carHits || 0) + 1; endDrift('crash');
       for (let k = 0; k < 30; k++) sparkles.emit(t.mesh.position, (Math.random() - 0.5) * 10, 1 + Math.random() * 4, (Math.random() - 0.5) * 10, 0.6 + Math.random() * 0.5, 0.3, 0.1, 0.9, tmpC2.set('#ffd9a0'));
       for (let k = 0; k < 24; k++) dust.emit(t.mesh.position, (Math.random() - 0.5) * 6, 0.5 + Math.random() * 2, (Math.random() - 0.5) * 6, 1.2 + Math.random(), 0.8, 3.5, 0.5, ENV.dust);
     }
@@ -2820,10 +3173,10 @@ function beatSyncSpeed(now, natural) {
   // wobbles (or flips between double/half time) the speed stays put instead of jumping.
   const T = tougeAt(F), sec = T ? T.st : Math.floor(F / TOUGE_SEG);
   if (sec !== syncSec) { syncSec = sec; syncVLock = T && T.vLock ? T.vLock : Math.min(52, Math.max(24, natural * 0.8)); }   // touge runs ~20% under cruise
-  syncBeats = Math.max(1, Math.round(TOUGE_SPACING / (syncVLock * P)));
-  let vLock = TOUGE_SPACING / (syncBeats * P);
-  while (vLock > 60) { syncBeats++; vLock = TOUGE_SPACING / (syncBeats * P); }
-  while (vLock < 20 && syncBeats > 1) { syncBeats--; vLock = TOUGE_SPACING / (syncBeats * P); }
+  syncBeats = Math.max(1, Math.round(TOUGE_Q / (syncVLock * P)));                 // beats per corner quantum
+  let vLock = TOUGE_Q / (syncBeats * P);
+  while (vLock > 60) { syncBeats++; vLock = TOUGE_Q / (syncBeats * P); }
+  while (vLock < 20 && syncBeats > 1) { syncBeats--; vLock = TOUGE_Q / (syncBeats * P); }
   syncVLock = vLock;
   if (F !== syncFlip) {
     syncFlip = F;
@@ -2845,9 +3198,9 @@ const SOLO_LEAD = 40;                // metres into the 峠 (mid ease-in) that s
 function makeSolo(a, b, beat) { return a == null ? null : { h0: heardTime(a), h1: heardTime(b), beat, t: null, done: false, announced: false }; }
 function commitSolo(so, st) {
   const P = so.beat || tempoP || 0.5;
-  let nb = Math.max(1, Math.round(TOUGE_SPACING / (38 * P))), v = TOUGE_SPACING / (nb * P);
-  while (v > 52) { nb++; v = TOUGE_SPACING / (nb * P); }
-  while (v < 26 && nb > 1) { nb--; v = TOUGE_SPACING / (nb * P); }
+  let nb = Math.max(1, Math.round(TOUGE_Q / (38 * P))), v = TOUGE_Q / (nb * P);
+  while (v > 52) { nb++; v = TOUGE_Q / (nb * P); }
+  while (v < 26 && nb > 1) { nb--; v = TOUGE_Q / (nb * P); }
   const t = { st, len: Math.max(360, v * (so.h1 - so.h0) + SOLO_LEAD + 60), vLock: v, solo: true };
   scheduled.push(t); so.t = t;
   // stations and bridges not built yet are re-decided around the new pass
@@ -2906,7 +3259,7 @@ function loseChain() {
 function updateChain(dt) {
   // top-speed run: hold ≥94% of top speed
   const wasTop = topRun;
-  topRun = state === 'playing' && speed >= MAX_SPEED * TOP_SPEED_AT;
+  topRun = state === 'playing' && speed >= topSpeed() * TOP_SPEED_AT;   // a hurt truck's own top speed
   if (topRun) { const e = chainEntry('top'); e.time += dt; e.pts += 70 * dt * (1 + e.time * 0.15); }
   if (topRun && !wasTop) tagPop('top speed run', '#ffe1a3');
   if (!chain.active) { if (clock > chain.shownUntil) $('chain').className = ''; return; }
@@ -2932,9 +3285,29 @@ function nearMiss() {
 
 // ---------------------------------------------------------------- drifting
 const driftMult = () => 1 + Math.min(2, driftT / 2.5);       // longer drifts are worth more, up to ×3
+const DRIFT_SWEET = 0.62;   // drift angle (rad)
+// spin-outs (drift mode): past SPIN_ANGLE the truck pirouettes — the drift and chain are lost, most of the speed too
+const SPIN_ANGLE = 1.25, SPIN_TIME = 1.0, DRIFT_DIE = 0.3, DRIFT_SLOW = 17;   // spin past · drift dies below (rad) · drift dies under (m/s ≈ 61 km/h)
+// a drift that ends badly (spun, died, hit the wall, missed the flick) is worth nothing: its points and the unbanked
+// chain are gone. The run itself carries on.
+let driftLock = false;   // after a failed drift, Space has to be let go before the next one can start
+function failDrift(why) {
+  if (!drifting) return;
+  driftPts = 0; endDrift('fail'); loseChain(); driftLock = true;
+  if (why) tagPop(why + ' · drift lost', '#f4a08c');
+}
+let spinT = 0, spinDir = 0;
+function spinOut() {
+  if (spinT > 0) return;
+  spinT = SPIN_TIME; spinDir = driftDir;
+  driftPts = 0; endDrift('spin'); loseChain(); driftLock = true;
+  speed *= 0.35; shake = Math.max(shake, 0.6); SFX.bad(); tagPop('spun out', '#f4a08c');
+}
+const spinYaw = () => spinT > 0 ? spinDir * (1 - spinT / SPIN_TIME) * Math.PI * 2 : 0;
 function startDrift(dir) {
-  if (drifting || state !== 'playing' || speed < 20) return;
+  if (drifting || state !== 'playing' || speed < 20 || spinT > 0 || driftLock) return;
   drifting = true; driftDir = dir; driftT = 0; driftPts = 0; counterT = 0; straightT = 0; releaseT = 0; wrongT = 0;
+  slide = dir * Math.max(DRIFT_SWEET * 0.8, Math.abs(slide));
   chainEntry('drift');
 }
 const kappaAt = s => (sample(s + 2).h - sample(s - 2).h) / 4;
@@ -2953,7 +3326,7 @@ function attemptTransition() {
   const T = TRANSITIONS.find(t => Math.abs(err) <= t.max) || TRANSITIONS[TRANSITIONS.length - 1];
   if (T.name === 'perfect') perfectFlips.push(carS + d);
   attemptedFlips.push({ s: carS + d, score: T.name === 'perfect' ? 1 : T.name === 'okay' ? 0.5 : 0 });
-  driftDir = -driftDir; wrongT = -0.8; straightT = 0;
+  driftDir = -driftDir; slide = driftDir * Math.abs(slide); wrongT = -0.8; straightT = 0;
   driftPts = driftPts * T.keep + T.bonus * driftMult();
   driftT += T.multUp;
   stats.transitions = (stats.transitions || 0) + 1;
@@ -2976,6 +3349,7 @@ function endDrift(reason) {
   driftPts = 0;
   if (reason === 'crash') return;
   if (reason === 'missed') tagPop('missed transition · half kept', '#f4a08c');
+  if (reason === 'spin' || reason === 'fail') return;                         // a failed drift banks nothing
   if (driftT > 0.5 && pts > 0) {
     chainEntry('drift').pts += pts; chain.idle = 0;
     stats.driftTotal += pts; stats.bestDrift = Math.max(stats.bestDrift, pts);
@@ -3080,7 +3454,6 @@ function judge(n) {
   } else {
     if (inLane) {
       stats.crashes++; shake = 0.6; slow = 0.6; endDrift('crash'); damage(15);
-      flash('oof');
       for (let i = 0; i < 40; i++) dust.emit(p, _f.x * speed * 0.7 + (Math.random() - 0.5) * 8, 1 + Math.random() * 4, _f.z * speed * 0.7 + (Math.random() - 0.5) * 8, 1.2 + Math.random(), 0.5, 1.6, 0.8, STRAW);
       n.dead = true;
     } else stats.dodged++;
@@ -3095,7 +3468,8 @@ function updateNotes(now, dt) {
     const n = notes[i];
     if (!n.judged && carS >= n.s) { judge(n); if (n.gold) goldReached(n, n.dead); }
     const ds = n.s - carS;
-    if (n.dead || ds < -14) { scene.remove(n.mesh); if (n.fade) n.fade.forEach(c => c.dispose()); notes.splice(i, 1); continue; }
+    updateGoldRing(n);
+    if (n.dead || ds < -14) { dropGoldRing(n); scene.remove(n.mesh); if (n.fade) n.fade.forEach(c => c.dispose()); notes.splice(i, 1); continue; }
     if (n.fade) {
       const k = Math.min(1, (performance.now() - n.born) / 700), e = 1 - Math.pow(1 - k, 3);
       for (const c of n.fade) c.opacity = c.userData.base * e;
@@ -3131,6 +3505,7 @@ const keySide = k => ['ArrowLeft', 'a', 'A'].includes(k) ? 'left' : ['ArrowRight
 addEventListener('keyup', e => { const s = keySide(e.key); if (s) held[s] = false; if (e.code === 'Space') { held.drift = false; held.goldTap = false; } });
 addEventListener('blur', () => { held.left = held.right = held.up = held.down = held.drift = false; held.pointer = 0; held.touches = 0; });
 addEventListener('keydown', e => {
+  if (state === 'tutfocus') { if (!e.repeat && (e.key === 'Enter' || e.code === 'Space')) tutContinue(); e.preventDefault(); return; }
   const side = keySide(e.key);
   if (side) { held[side] = true; if (!e.repeat && held.tapUntil[side] !== undefined) held.tapUntil[side] = performance.now() + TAP_MIN; e.preventDefault(); return; }
   if (e.code === 'Space') { if (!e.repeat && !held.drift && goldPress()) held.goldTap = true; else if (!held.goldTap) held.drift = true; e.preventDefault(); return; }
@@ -3178,8 +3553,12 @@ for (const ev of ['pointerup', 'pointercancel']) renderer.domElement.addEventLis
   if (held.touches === 0) held.pointer = 0;
 });
 $('btnResume').onclick = () => setPaused(false);
-$('btnQuit').onclick = () => { setPaused(false); endGame(true); if (levelBiome !== -1) resetWorld(-1); };
-$('btnMenu').onclick = () => { $('results').classList.add('hidden'); $('menu').classList.remove('hidden'); if (levelBiome !== -1) resetWorld(-1); };
+$('btnQuit').onclick = () => { const drift = run && run.kind === 'drift'; setPaused(false); endGame(!drift); if (!drift && levelBiome !== -1) resetWorld(-1); };   // drift mode: quitting is how a run ends, so show results
+$('btnMenu').onclick = () => {
+  parked = false; $('results').classList.add('hidden'); $('menu').classList.remove('hidden');
+  if (tougeMode === 'song' && scheduled.some(t => t.len > 1e6)) { tougeMode = 'random'; scheduled.length = 0; resetWorld(-1); }   // leaving drift mode: back to the normal road
+  else if (levelBiome !== -1) resetWorld(-1);
+};
 const showErr = m => { $('err').textContent = m; };
 // graphics presets: render resolution, sun shadows, bloom (the cel outlines stay on at every level, they're the look)
 const GFX = {
@@ -3218,6 +3597,7 @@ syncSettingsUi();
 
 document.querySelectorAll('.level[data-level]').forEach(b => b.onclick = () => startLevel(+b.dataset.level));
 $('btnTutorial').onclick = () => startTutorial();
+$('btnDrift').onclick = () => startDriftMode();
 showBests();
 $('btnSpotify').onclick = async () => {
   showErr('');
@@ -3458,61 +3838,159 @@ $('cdList').onclick = e => {
 };
 
 // ---------------------------------------------------------------- tutorial
-// A guided drive on the Sakura road. Each step explains one mechanic and waits until you've done it
-// (Enter skips). Steps that need a gas station or a 峠 move you there behind a quick fade.
+// A guided drive through Momiji Pass. Each step explains one mechanic and waits until you've done it (Enter skips).
+// When something a step is about comes up the road, the game freezes, swings the camera onto it and explains it
+// (a "callout"); the HUD parts a step talks about glow, and the key words are highlighted.
 const kbd = k => `<kbd>${k}</kbd>`;
+const M = t => `<mark>${t}</mark>`;
+const tutLanternPos = n => n.mesh.position.clone().setY(n.mesh.position.y - (LANTERN_H / 2 + 1.4) * LANTERN_SCALE);
+// the first not-yet-reached note of a kind, 25–80 m ahead
+const noteAhead = (pred) => notes.find(n => !n.judged && !n.dead && n.s - carS > 25 && n.s - carS < 80 && pred(n));
 const TUT_STEPS = [
-  { title: 'Steering', text: `Hold ${kbd('←')} ${kbd('→')} or ${kbd('A')} ${kbd('D')} to steer. A quick tap nudges the car; holding slides it across the road. Steer to both sides.`,
+  { title: 'Steering', text: `Hold ${M(kbd('←') + ' ' + kbd('→'))} or ${kbd('A')} ${kbd('D')} to steer. A quick tap nudges the truck; holding slides it across the road. ${M('Steer to both sides.')}`,
     enter(t) { t.minL = 0; t.maxL = 0; },
     check(t) { t.minL = Math.min(t.minL, lateral); t.maxL = Math.max(t.maxL, lateral); return t.minL < -3.5 && t.maxL > 3.5; } },
-  { title: 'Lanterns', text: `Lanterns appear on the beats of the music — red for bass, blue for mids, purple for highs. Drive through <b>3 lanterns</b>. Every 8 in a row raises your multiplier (top right).`,
+  { title: 'Lanterns', text: `Lanterns land on the beats of the music. Drive through ${M('3 lanterns')}. Every 8 in a row raises your ${M('multiplier')} (top right).`,
+    hud: ['multRing'],
+    focus: [{ find: () => { const n = noteAhead(n => n.type === 'orb' && !n.gold); return n && tutLanternPos(n); },
+      title: 'A lantern', text: `Steer through it as it reaches you — it's timed to the beat. Colours tell you the sound: ${M('red')} bass, ${M('blue')} mids, ${M('purple')} highs.` }],
     enter(t) { t.base = stats.lanterns || 0; },
     check(t) { return (stats.lanterns || 0) - t.base >= 3; } },
-  { title: 'Gold runs', text: `Now and then a run of <b>gold 金 lanterns</b> comes along. Drive through each one and <b>tap ${kbd('Space')}</b> just as you reach it. Get every one for a <b>boost</b>: ×2 score, a burst of speed, and in levels it repairs your cargo. Miss one and the rest turn normal; another run follows. <b>Clear a gold run.</b>`,
+  { title: 'Gold runs', text: `Sometimes a run of ${M('gold 金 lanterns')} comes along. Drive through each one and ${M('tap ' + kbd('Space'))} as you reach it. Clear the whole run for a ${M('boost')}. ${M('Clear a gold run.')}`,
+    focus: [{ find: () => { const n = noteAhead(n => n.gold); return n && tutLanternPos(n); },
+      title: 'Gold lantern', text: `A ring closes in around it — ${M('tap ' + kbd('Space'))} when the ring meets the lantern. Get every lantern in the run: ×2 score, a burst of speed, and in levels it repairs your cargo.` }],
     enter(t) { t.base = stats.goldOk || 0; tutGold = true; goldNextAt = 0; },
     check(t) { const ok = (stats.goldOk || 0) > t.base; if (ok) tutGold = false; return ok; } },
-  { title: 'Throttle & brake', text: `Hold ${kbd('↑')} / ${kbd('W')} to build speed — reach <b>140 km/h</b> on the speedometer. Then tap ${kbd('↓')} / ${kbd('S')} to brake below 100. Faster means heavier steering.`,
+  { title: 'Throttle & brake', text: `Hold ${M(kbd('↑') + ' / ' + kbd('W'))} to build speed — reach ${M('140 km/h')} on the speed readout (bottom right). Then ${M(kbd('↓') + ' / ' + kbd('S'))} to brake below 100. Faster means heavier steering.`,
+    hud: ['cluster'],
     enter(t) { t.fast = false; },
     check(t) { const kmh = speed * 2.2; if (kmh >= 140) t.fast = true; return t.fast && kmh < 100; } },
-  { title: 'Health, repairs & yen', text: `The <b>CAR</b> dial (bottom right) drops when you hit traffic or scrape the edge wall — and any hit resets your multiplier. Grab the <b>wrench</b> to repair and the <b>banknote</b> for yen.`,
+  { title: 'Repairs & yen', text: `The ${M('CAR')} bar drops when you hit traffic or scrape the wall, and a hurt truck is slower and harder to steer. Grab the ${M('wrench')} to repair and the ${M('banknote')} for yen.`,
+    hud: ['clCar', 'yen'],
+    focus: [{ find: () => { const n = noteAhead(n => n.type === 'health'); return n && n.mesh.position; },
+      title: 'Wrench', text: `Drive through it to ${M('repair')} your truck — the CAR bar (bottom right) fills back up.` },
+            { find: () => { const n = noteAhead(n => n.type === 'yen'); return n && n.mesh.position; },
+      title: 'Banknote', text: `${M('Yen')} — your total is top left.` }],
     enter(t) { t.yen = stats.yen || 0; t.rep = stats.repairs || 0; t.next = 0; },
     check(t, now) {
       if (now > t.next) {
-        t.next = now + 7;                                    // respawn every 7 s until both are collected
-        const side = lateral > 0 ? -1 : 1;                   // across the road from where you are
+        t.next = now + 7;
+        const side = lateral > 0 ? -1 : 1;
         spawnNote(ctx.currentTime + 3.2, side * 4, 'health', 0);
         spawnNote(ctx.currentTime + 4.6, -side * 3, 'yen', 0);
       }
       return (stats.yen || 0) > t.yen && (stats.repairs || 0) > t.rep;
     } },
-  { title: 'Traffic', text: `Slower cars drive in the left lane, oncoming cars on the right. <b>Pass 2 cars</b> without touching them. Passing close earns a <b>near miss</b>.`,
+  { title: 'Traffic', text: `Cars ahead keep left, oncoming cars come down the right. ${M('Pass 2 cars')} without touching them — passing close is a ${M('near miss')}.`,
+    focus: [{ find: () => { const c = traffic.find(c => c.s - carS > 30 && c.s - carS < 90); return c && c.mesh.position.clone().setY(c.mesh.position.y + 1); },
+      title: 'Traffic', text: `Hitting a car costs ${M('health')}, speed and your ${M('multiplier')}. Slip past it instead — close is worth points.` }],
     enter(t) { t.base = stats.passed || 0; },
     check(t) { if (traffic.length < 3) trafficTimer = Math.min(trafficTimer, 0.3); return (stats.passed || 0) - t.base >= 2; } },
-  { title: 'Gas stations', text: `The <b>GAS</b> dial (bottom left) drains faster the faster you drive — run dry and the run is over. Drive through the <b>green lane under the station canopy</b> to refuel. Lanterns line the lane too.`,
-    enter(t) { setFuel(30); const st = nextStation(); if (st) tutTeleport(st.s - 280); },
+  { title: 'Gas stations', text: `Your ${M('FUEL')} bar drains faster the faster you drive — run dry and the run is over. Drive through the ${M('green lane')} under the station canopy to refuel.`,
+    hud: ['clFuel'],
+    focus: [{ find: () => { const st = nextStation(); return st && st.s - carS < 130 && st.s - carS > 40 ? roadPoint(st.s, st.side * 6, 2.5) : null; },
+      title: 'Gas station', text: `Stay in the ${M('green-striped lane')} under the canopy until the FUEL bar is full. A blinking ${M('fuel lamp')} next to your truck means you're low.` }],
+    enter(t) { setFuel(30); const st = nextStation(); if (st) tutTeleport(st.s - 320); },
     check() { return fuel > 85; } },
-  { title: '峠 — mountain pass', text: `In a 峠 the speed locks to the beat and there are no lanterns — it's for drifting. In a corner, <b>hold ${kbd('Space')}</b> to drift. Hold one for a couple of seconds.`,
+  { title: '峠 — drift zone', text: `A 峠 is for drifting: the speed locks to the beat and there are no lanterns. In a corner, ${M('hold ' + kbd('Space'))} to drift and steer your line with ${kbd('←')} ${kbd('→')}. ${M('Hold a drift for a couple of seconds.')}`,
+    focus: [{ find: () => { const f = flips.find(f => f - carS > 40 && f - carS < 120); return f !== undefined ? roadPoint(f, 0, 1) : null; },
+      title: 'Gate', text: `Gold gates mark where the road ${M('switches direction')}. Drift into the corner before it — next you'll learn to flick through the gate.` }],
     enter() { tutToTouge(); },
     check() { return drifting && driftT > 1.6; } },
-  { title: 'Transitions', text: `Gold gates mark where the bend switches. <b>Release and tap ${kbd('Space')} again right at the gate</b> — it lands on the beat — to flick into the next corner. <span style="color:#46b86c">Green</span> = perfect, <span style="color:#e08a2e">orange</span> = okay, <span style="color:#d9583f">red</span> = bad or missed. Do 2 transitions.`,
+  { title: 'Transitions', text: `At each gate, ${M('let go of ' + kbd('Space') + ' and tap it again')} right as you cross — it lands on the beat. ${M('Green')} = perfect, ${M('orange')} = okay, ${M('red')} = bad or missed. ${M('Do 2 transitions.')}`,
     enter(t) { t.base = stats.transitions || 0; },
     check(t) { tutKeepInTouge(); return (stats.transitions || 0) - t.base >= 2; } },
-  { title: 'Clipping points', text: `The glowing rings with flags are <b>clipping points</b>. Slide through one while drifting — inside rings on the inside of the bend, blue ones on the outside.`,
+  { title: 'Clipping points', text: `${M('Clipping points')} are the rings marked by tall CLIP banners. Slide through one ${M('while drifting')} — red ones on the inside of the bend, blue on the outside.`,
+    focus: [{ find: () => { const c = clips.find(c => !c.judged && c.s - carS > 40 && c.s - carS < 110); return c ? roadPoint(c.s, c.x, 1.5) : null; },
+      title: 'Clipping point', text: `Put your truck ${M('through the ring')} mid-drift. Dead centre is a ${M('great clip')}.` }],
     enter(t) { t.base = stats.clips || 0; t.seen = clips.filter(c => c.judged).length; },
     check(t) { tutKeepInTouge(); return (stats.clips || 0) - t.base >= 1 || clips.filter(c => c.judged).length - t.seen >= 5; } },
-  { title: '峠 boost & skill chains', text: `Get <b>60% top grades</b> (perfect transitions, great clips) across a 峠 for a <b>×2 boost</b> — the more accurate, the longer it lasts. Drifts, near misses and top-speed runs build a <b>skill chain</b> under your car; it banks when you ease off, and any hit loses it. Press ${kbd('Enter')} when you're ready.`,
+  { title: 'Boosts & skill chains', text: `Hit ${M('60% top grades')} across a 峠 for a ${M('×2 boost')}. Drifts, near misses and top-speed runs build a ${M('skill chain')} under your truck — it banks when you ease off, and any hit loses it. Press ${kbd('Enter')} when you're ready.`,
+    hud: ['chain'],
     enter(t) { t.until = performance.now() / 1000 + 14; },
     check(t, now) { return now > t.until; } },
-  { title: 'You’re ready', text: `That's everything. Pick a level, or <b>burn a CD</b> of your own songs from the menu — they're analyzed first so lanterns land on the beat. Have a good drive.`,
+  { title: 'You’re ready', text: `That's everything. Pick a ${M('level')}, try ${M('Drift Mode')}, or ${M('burn a CD')} of your own songs — they're analysed first so lanterns land on the beat.`,
     enter(t) { t.until = performance.now() / 1000 + 6; },
     check(t, now) { if (now > t.until) { endGame(true); resetWorld(-1); } return false; } },
 ];
+// ---- callouts: freeze, swing the camera onto the thing, spotlight it, explain it
+let tutFocus = null;
+const tutCam = { mode: 'off', t: 0, fromPos: new THREE.Vector3(), fromLook: new THREE.Vector3(), pos: new THREE.Vector3(), look: new THREE.Vector3() };
+function tutCallout(target, title, html) {
+  if (tutFocus || state !== 'playing') return;
+  tutFocus = { target: target.clone() };
+  state = 'tutfocus'; ctx.suspend();
+  held.left = held.right = held.up = held.down = held.drift = false;
+  const back = new THREE.Vector3().subVectors(camera.position, target).setY(0).normalize();
+  tutCam.fromPos.copy(camera.position); tutCam.fromLook.copy(camLook);
+  tutCam.pos.copy(target).addScaledVector(back, 10).add(new THREE.Vector3(0, 4.5, 0));
+  tutCam.look.copy(target);
+  tutCam.mode = 'in'; tutCam.t = 0;
+  $('tutCallout').querySelector('.tcTitle').textContent = title;
+  $('tutCallout').querySelector('.tcText').innerHTML = html;
+  ['tutCallout', 'tutDim', 'tutRing'].forEach(id => $(id).classList.add('on'));
+}
+function tutContinue() {
+  if (!tutFocus) return;
+  tutFocus = null;
+  ['tutCallout', 'tutDim', 'tutRing'].forEach(id => $(id).classList.remove('on'));
+  tutCam.mode = 'out'; tutCam.t = 0;
+  state = 'playing'; ctx.resume();
+}
+const easeIO = k => k * k * (3 - 2 * k);
+// while frozen: glide in to the close-up and keep the spotlight + callout on the target
+function tutFocusFrame(dt) {
+  tutCam.t += dt;
+  const k = easeIO(Math.min(1, tutCam.t / 0.8));
+  camera.position.lerpVectors(tutCam.fromPos, tutCam.pos, k);
+  camera.lookAt(_a.lerpVectors(tutCam.fromLook, tutCam.look, k));
+  tagV.copy(tutFocus.target).project(camera);
+  const x = (tagV.x * 0.5 + 0.5) * innerWidth, y = (-tagV.y * 0.5 + 0.5) * innerHeight;
+  $('tutRing').style.left = x + 'px'; $('tutRing').style.top = y + 'px';
+  $('tutDim').style.background = `radial-gradient(circle at ${x}px ${y}px, transparent 0 80px, rgba(12,10,16,.62) 190px)`;
+  const cw = Math.min(340, innerWidth - 32);
+  const card = $('tut').getBoundingClientRect(), ch = $('tutCallout').offsetHeight || 150;
+  let cy = y - ch - 80;                                                              // above the target…
+  if (cy < card.bottom + 12) cy = Math.min(innerHeight - ch - 16, y + 80);          // …or below it if that would cover the step card
+  $('tutCallout').style.transform = `translate(${Math.max(16, Math.min(innerWidth - cw - 16, x - cw / 2))}px, ${cy}px)`;
+}
+// after: ease back from the close-up to the chase camera
+function tutCamBlendOut(dt) {
+  if (tutCam.mode !== 'out') return;
+  tutCam.t += dt;
+  const k = 1 - easeIO(Math.min(1, tutCam.t / 0.7));
+  if (k <= 0) { tutCam.mode = 'off'; return; }
+  camera.position.lerp(tutCam.pos, k);
+  camera.lookAt(_a.copy(camLook).lerp(tutCam.look, k));
+}
+function tutHud(ids) {
+  document.querySelectorAll('.tutGlow').forEach(el => el.classList.remove('tutGlow'));
+  for (const id of ids || []) $(id)?.classList.add('tutGlow');
+}
 let tut = null;
+// ---------------------------------------------------------------- drift mode: one endless 峠
+// The whole road is a single scheduled 峠 starting a little way in, through Momiji Pass, to the looping lo-fi track.
+// No lanterns, traffic or gas stations exist inside a 峠, so the tank doesn't drain here; the run goes on until you quit
+// (results come up) or wreck. Speed is beat-locked as in any 峠, sized for this song's tempo.
+const DRIFT_BIOME = 3, DRIFT_SONG = 'sakura';
+function startDriftMode() {
+  showErr(''); ensureAudio();
+  BIOME_LEN = 1700; regionPlan = null;
+  tougeMode = 'song'; scheduled.length = 0;
+  const song = makeDemo(DRIFT_SONG), P = 60 / song.bpm;
+  let nb = Math.max(1, Math.round(TOUGE_Q / (38 * P))), v = TOUGE_Q / (nb * P);
+  while (v > 52) { nb++; v = TOUGE_Q / (nb * P); }
+  scheduled.push({ st: 320, len: 1e8, vLock: v });
+  resetWorld(DRIFT_BIOME);
+  startGame('drift', song.node, 'Drift Mode · Momiji Pass', { stop: song.stop, duration: song.duration, level: 'drift' });
+  run.soloWin = songSoloWin(song);
+}
+const TUT_BIOME = 3;   // Momiji Pass
 function startTutorial() {
   showErr(''); ensureAudio();
-  resetWorld(0);
+  resetWorld(TUT_BIOME);
   const song = makeDemo('sakura');
-  startGame('tutorial', song.node, 'Tutorial · Sakura Kaidō', { stop: song.stop, duration: song.duration, level: 'tutorial' });
+  startGame('tutorial', song.node, 'Tutorial · Momiji Pass', { stop: song.stop, duration: song.duration, level: 'tutorial' });
   // start on open road, past the first 峠
   let d = tougeStartOf(0) + 20; while (twistAt(d) > 0) d += 20;
   tutTeleport(d + 120, true);
@@ -3526,15 +4004,20 @@ function tutNext() {
   $('tutStep').textContent = tut.i < TUT_STEPS.length - 1 ? `Step ${tut.i + 1} of ${TUT_STEPS.length - 1}` : 'Done';
   $('tutTitle').textContent = S.title; $('tutText').innerHTML = S.text;
   $('tut').className = 'on';
+  tut.focusDone = 0; tutHud(S.hud);
   S.enter?.(tut.data);
 }
 function updateTutorial() {
   if (!tut || !run || run.kind !== 'tutorial' || state !== 'playing') return;
   const now = performance.now() / 1000, S = TUT_STEPS[tut.i];
   if (tut.doneAt) { if (now - tut.doneAt > TUT_DONE_HOLD) tutNext(); return; }
+  // callouts for this step, in order, each once, when its thing comes into range
+  const F = S.focus && S.focus[tut.focusDone];
+  if (F && !tut.moving) { const p = F.find(); if (p) { tut.focusDone++; tutCallout(p, F.title, F.text); tut.shownAt = now; return; } }
   if (!tut.met && S.check(tut.data, now)) tut.met = true;
   if (tut.met && now - tut.shownAt >= (S.minRead ?? TUT_MIN_READ)) { tut.doneAt = now; $('tut').className = 'on done'; SFX.okay(); }
 }
+function tutEnd() { tutHud([]); tutContinue(); }
 function tutSkip() { if (tut && !tut.doneAt && tut.i < TUT_STEPS.length - 1) { tut.doneAt = performance.now() / 1000 - TUT_DONE_HOLD + 0.3; } }
 // jump along the road behind a quick fade (chunks are rebuilt around the new spot first)
 function tutTeleport(s, instant) {
@@ -3559,6 +4042,7 @@ function loopTutorialSong(elapsed) {
   const song = makeDemo('sakura');
   song.node.connect(analyser); song.node.connect(delay);
   Object.assign(run, { node: song.node, stop: song.stop, duration: song.duration, start: ctx.currentTime });
+  if (run.kind === 'drift') run.soloWin = songSoloWin(song);
 }
 
 // ---------------------------------------------------------------- per-frame world update
@@ -3566,7 +4050,9 @@ function loopTutorialSong(elapsed) {
 const camPos = new THREE.Vector3(0, 10, 16), camLook = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _r = new THREE.Vector3();
 const sunDir = new THREE.Vector3(), focus = new THREE.Vector3();
 const wheelL = new THREE.Vector3(), wheelR = new THREE.Vector3();
-let idleT = 0, clock = 0, carYaw = 0, wasTouge = false, camZoom = 0;
+let onSnow = 0;
+let idleT = 0, clock = 0, carYaw = 0, wasTouge = false, camZoom = 0, zoneFx = 0, sunFollowAz = null;
+const lightDir = new THREE.Vector3(), _lr = new THREE.Vector3(), _lu = new THREE.Vector3();
 
 function updateWorld(dt, now) {
   clock += dt;
@@ -3581,27 +4067,31 @@ function updateWorld(dt, now) {
   // unhurried speed that follows the music's energy
   // cruise speed follows the music's energy, but slowly, so pickups land on the beat at cruise
   cruise = lerp(cruise, state === 'menu' ? 24 : 30 + 30 * Math.min(1.2, vis.level), 1 - Math.exp(-dt * 0.25));
-  const targetSpeed = cruise;
+  const targetSpeed = Math.min(cruise, topSpeed());
   slow = lerp(slow, 1, 1 - Math.exp(-dt * 1.0));
   // throttle / brake override cruise; let go and the car settles back to cruise (or beat-sync in a touge)
   // in a touge the speed is locked to the beat: pedals do nothing there
   // until the car reaches a solo 峠, its pacing outranks beat sync (which would otherwise grab the first bend early)
   const pace = state === 'playing' ? soloPace(now) : null, paceLock = !!pace && pace.lock;
-  const syncV = state === 'playing' ? beatSyncSpeed(now, targetSpeed) : 0;
+  const freeDrive = !!run && run.kind === 'drift';                         // drift mode: the speed is all yours
+  const syncV = state === 'playing' && !freeDrive ? beatSyncSpeed(now, targetSpeed) : 0;
   tougeLocked = !!syncV && !pace;
   pedal = state === 'playing' && !tougeLocked && !paceLock ? (held.up ? 1 : 0) - (held.down ? 1 : 0) : 0;
   const dry = state === 'playing' && fuel <= 0;                       // empty tank: engine's dead, coast down to a crawl
-  if (dry) {
+  if (state === 'wrecking' || parked) speed = Math.max(0, lerp(speed, 0, 1 - Math.exp(-dt * 2.4)) - 1.5 * dt);   // rolls to a dead stop
+  else if (dry) {
     speed = Math.max(0, lerp(speed, 0, 1 - Math.exp(-dt * 0.45)) - 0.6 * dt);   // engine's dead: coast to a stop
-    if (speed < 2.5 && !refueling) { state = 'wrecking'; flash('out of gas', '#f4a08c'); setTimeout(() => { if (state === 'wrecking') endGame(false, 'gas'); }, 1400); }
+    if (speed < 2.5 && !refueling) { flash('out of gas', '#f4a08c'); wreck('gas'); }
   }
   else if (tougeLocked) speed = lerp(speed, syncV, 1 - Math.exp(-dt * 0.9));
-  else if (pedal > 0) speed = Math.min(MAX_SPEED, speed + (0.7 + 4.3 * (1 - Math.pow(speed / MAX_SPEED, 1.4))) * dt);   // ~20 s from cruise to top speed
+  else if (pedal > 0) { const top = topSpeed(); speed = Math.min(Math.max(speed, top), speed + (0.7 + 4.3 * Math.max(0, 1 - Math.pow(speed / top, 1.4))) * (1 - 0.5 * dmg()) * dt); }   // ~20 s from cruise to top speed; damage halves it at worst
   else if (pedal < 0) speed = Math.max(MIN_SPEED, speed - 32 * dt);
   else if (paceLock) speed = lerp(speed, pace.v, 1 - Math.exp(-dt * 2.5));
   // approaching the solo, cruise becomes the pace that arrives on time: the pedals still work, and it re-plans
   // around whatever you do, until the last few seconds lock it in
+  else if (freeDrive) speed = Math.max(0, speed - (0.4 + speed * 0.012) * dt);   // off the throttle: just rolling resistance and drag
   else speed = lerp(speed, pace ? pace.v : targetSpeed, 1 - Math.exp(-dt * 0.9));
+  if (!tougeLocked && !paceLock && speed > topSpeed()) speed = lerp(speed, topSpeed(), 1 - Math.exp(-dt * 0.8));   // just got hurt: the engine can't hold the old pace
   if (paceLock) tougeLocked = true;
   // crashes, drifting and the verge bleed speed off whatever you're doing
   if (slow < 0.999) speed = lerp(speed, Math.min(speed, MAX_SPEED * slow), 1 - Math.exp(-dt * 3));
@@ -3612,7 +4102,7 @@ function updateWorld(dt, now) {
   const tnow = performance.now();
   const r = held.right || tnow < held.tapUntil.right, l = held.left || tnow < held.tapUntil.left;
   let input = (r ? 1 : 0) - (l ? 1 : 0) + held.pointer;
-  if (state === 'menu') input = (Math.sin(idleT * 0.25) * 3.5 - lateral) * 0.25 - latVel * 0.12;   // gentle autopilot
+  if (state === 'menu' && !parked) input = (Math.sin(idleT * 0.25) * 3.5 - lateral) * 0.25 - latVel * 0.12;   // gentle autopilot
   if (state !== 'playing' && state !== 'menu') input = 0;
   input = Math.max(-1, Math.min(1, input));
   steer = lerp(steer, input, 1 - Math.exp(-dt * 14));
@@ -3620,7 +4110,20 @@ function updateWorld(dt, now) {
   const fast = smooth(30, 90, speed);
   let maxLat = 16 - 7 * fast, resp = 6.5 - 3.3 * fast;                   // ~16 m/s sideways when slow, ~9 at top speed
   if (drifting) { maxLat *= 0.65; resp *= 0.55; }
+  if (spinT > 0) { maxLat = 0; }
+  maxLat *= 1 - 0.3 * dmg(); resp *= 1 - 0.45 * dmg();                     // damage: steering gets slower and less sharp
+  // snow on the road: the tyres barely bite, so steering answers slowly and the truck carries its sideways momentum
+  onSnow = state === 'playing' ? snowPatch(car.position.x, car.position.z, snowAmtAt(carS, biomeAt(carS))) : 0;
+  mixC(snowU.col.value, 'grassA', biomeAt(carS));                            // drifts match the region's own snow
+  resp *= 1 - 0.78 * onSnow;
   latVel = lerp(latVel, steer * maxLat, 1 - Math.exp(-dt * resp));
+  if (spinT > 0) { spinT = Math.max(0, spinT - dt); latVel *= Math.exp(-dt * 3); }   // mid-spin: no steering
+  if (runOff) latVel = lerp(latVel, runOff.dir * 15, 1 - Math.exp(-dt * 6));     // missed the flick: sliding wide, no saving it
+  // bad alignment: below PULL_FROM health the truck wanders to one side, harder the worse it gets — counter-steer it
+  if (health < PULL_FROM && state === 'playing') {
+    if (!pullDir) pullDir = Math.random() < 0.5 ? -1 : 1;
+    lateral += pullDir * (1.2 + 3.6 * (PULL_FROM - health) / PULL_FROM) * dt;
+  } else if (health >= PULL_CLEAR) pullDir = 0;
   yawRel = Math.asin(Math.max(-0.6, Math.min(0.6, latVel / Math.max(speed, 8))));   // heading, for visuals and effects
 
   // road curvature: corners push the car outward; drifting into the corner holds the line
@@ -3628,11 +4131,16 @@ function updateWorld(dt, now) {
   // drifts only happen in corners: holding Space on a straight waits for the next bend,
   // and a drift ends by itself once the road has been straight for a moment
   const wantDrift = held.drift || held.touches >= 2;
+  if (!wantDrift) driftLock = false;
   const cornerDir = Math.abs(kappa) > CORNER_START ? Math.sign(kappa) : 0;
   const rising = wantDrift && !wantPrev, falling = !wantDrift && wantPrev;
   wantPrev = wantDrift;
   if (!drifting) {
-    if (wantDrift && cornerDir) startDrift(cornerDir);
+    // tapping at a gate counts as a transition even if you weren't drifting into it (e.g. the first gate of a 峠):
+    // start the drift in the corner you're leaving, then flick it into the next one
+    const gate = rising && state === 'playing' && speed >= 20 ? flips.find(f => Math.abs(f - carS) <= speed * TRANSITIONS[1].max) : undefined;   // within the "okay" window; earlier taps just start a drift
+    if (gate !== undefined && Math.sign(kappaAt(gate - 12))) { startDrift(Math.sign(kappaAt(gate - 12))); attemptTransition(); }
+    else if (wantDrift && cornerDir) startDrift(cornerDir);
     else if (rising && state === 'playing') driftHint();
   } else {
     // letting go of Space doesn't end the drift straight away: pressing it again within
@@ -3646,40 +4154,61 @@ function updateWorld(dt, now) {
     wrongT = cornerDir && cornerDir !== driftDir ? wrongT + dt : Math.min(0, wrongT + dt);
     if (drifting && wrongT > 0.45) endDrift('missed');
   }
-  const grip = drifting && driftDir === Math.sign(kappa) ? 0.2 : 1;
+  // in a drift you steer the line yourself; the angle only nudges it (more angle tucks in a touch, less runs a touch wide)
+  const grip = drifting && driftDir === Math.sign(kappa) ? THREE.MathUtils.clamp(0.22 - 0.4 * (Math.abs(slide) - DRIFT_SWEET), 0.08, 0.4) : 1;
   if (state === 'playing') lateral -= kappa * speed * speed * 0.06 * grip * dt;
   lateral += latVel * dt;
 
   if (drifting) {
     driftT += dt;
+    // the drift holds its own angle; steering places your line (for the clipping points) and swings the tail a little
     const along = input * driftDir;                                          // + = steer into the drift, - = countersteer
-    slide = lerp(slide, driftDir * Math.max(0.15, Math.min(0.95, 0.55 + 0.4 * along)), 1 - Math.exp(-dt * 4));
-    counterT = along < -0.5 ? counterT + dt : 0;
-    if (counterT > 0.6) endDrift('countersteer');
-    else {
-      driftPts += speed * Math.abs(slide) * (1 + Math.abs(kappa) * 35) * 3 * driftMult() * dt;
-    }
+    if (run && run.kind === 'drift') {
+      // drift mode: the throttle holds the slide up. Gas swings the tail out (harder the faster you go); off the gas it
+      // straightens and the drift dies; too much gas and it swings past the point of no return: spin. Feather it.
+      const thr = held.up ? 1 : 0, brk = held.down ? 1 : 0, rest = DRIFT_SWEET + 0.15 * along;
+      let A = Math.abs(slide);
+      A += (thr * (0.55 + 0.6 * smooth(25, 60, speed)) - brk * 1.2) * dt;
+      A = lerp(A, thr ? rest : 0.15, 1 - Math.exp(-dt * (thr ? 0.6 : brk ? 2.5 : 0.9)));
+      slide = driftDir * A;
+      if (A > SPIN_ANGLE) spinOut();
+      else if (A < DRIFT_DIE) failDrift('not enough gas');
+      else if (speed < DRIFT_SLOW) failDrift('too slow');
+    } else slide = lerp(slide, driftDir * (DRIFT_SWEET + 0.18 * along), 1 - Math.exp(-dt * 4));
+    if (drifting) driftPts += speed * Math.abs(slide) * (1 + Math.abs(kappa) * 35) * 3 * driftMult() * dt;
     slow = Math.min(slow, 0.94);
   } else slide = lerp(slide, 0, 1 - Math.exp(-dt * 5));
   wallCD -= dt;
   const limit = lerp(DRIVE_LIMIT, 6.4, bridgeAt(carS));
   if (Math.abs(lateral) > limit) {
     lateral = Math.sign(lateral) * limit; latVel *= -0.3; shake = Math.max(shake, 0.15);
-    if (wallCD <= 0 && state === 'playing') { damage(7); wallCD = 0.8; stats.wallHits = (stats.wallHits || 0) + 1; }
+    if (state === 'playing' && run && run.kind === 'drift') {                  // drift mode: the wall costs the drift and speed, not the run
+      if (wallCD <= 0) { stats.wallHits = (stats.wallHits || 0) + 1; shake = 0.7; speed *= 0.5; SFX.bad(); wallCD = 0.8; if (drifting) failDrift('hit the wall'); else { loseChain(); tagPop('hit the wall', '#f4a08c'); } }
+      runOff = null;
+    }
+    else if (wallCD <= 0 && state === 'playing') { damage(7); wallCD = 0.8; stats.wallHits = (stats.wallHits || 0) + 1; }
   }
   const offRoad = Math.abs(lateral) > 6.4;
   if (offRoad) slow = Math.min(slow, 0.82);
   updateChunks(carS);
   updateEnv(carS);
-  const inTouge = twistAt(carS + 120) > 0.5;           // announce a little before the first bend
-  if (inTouge !== wasTouge) { wasTouge = inTouge; if (inTouge && state === 'playing') flash(tougeAt(carS + 120)?.solo ? '峠 solo!' : '峠 ahead', tougeAt(carS + 120)?.solo ? '#ffd77a' : ''); }
+  // drift zone heads-up: banner from ~450 m out until the car is in the first bend
+  {
+    const ts = state === 'playing' ? tougeStartsIn(carS - 60, carS + 450)[0] : undefined;
+    const show = ts !== undefined && carS < ts + 40;
+    $('zoneBanner').classList.toggle('on', show);
+    if (show) {
+      const solo = tougeAt(ts + 1)?.solo, d = ts - carS;
+      $('zbInfo').textContent = (solo ? 'solo · ' : '') + (d > 15 ? Math.round(d / 10) * 10 + ' m' : 'now');
+    }
+  }
 
   // car: points where it's heading, rear steps out a little, gentle bob on the beat
   roadPoint(carS, lateral, 0, car.position);
   roadPoint(carS + 1.5, lateral, 0, _a); roadPoint(carS - 1.5, lateral, 0, _b);
   _a.sub(_b).normalize();
   car.lookAt(_b.copy(car.position).sub(_a));
-  carYaw = lerp(carYaw, -yawRel * 1.25 - steer * 0.06 - slide, 1 - Math.exp(-dt * 8));
+  carYaw = lerp(carYaw, -yawRel * 1.25 - steer * 0.06 - slide - spinYaw(), 1 - Math.exp(-dt * (spinT > 0 ? 25 : 8)));
   car.rotateY(carYaw); car.rotateZ(steer * 0.03 + slide * 0.05 + Math.atan(sample(carS).b));   // roll with the banked road
   // front wheels: normal steering, plus countersteer in a drift — the body yaws out by `slide`, so turning the
   // wheels back by most of that keeps them pointing down the road, the way a drifting car looks
@@ -3693,6 +4222,16 @@ function updateWorld(dt, now) {
   if (hopY > 0) car.rotateX(hopV * 0.012);
   updateCargo(dt);
   for (const w of car.userData.wheels) w.children.forEach(c => c.rotation.x -= speed * dt / 0.4);
+  updateBodyRoll(dt);
+  // damaged engine: smoke pours from the front of the cab, thicker and darker the lower the health
+  if ((state === 'playing' || state === 'wrecking' || parked) && health <= 30) {
+    const hurt = (30 - health) / 30, rate = 18 + hurt * 40;
+    smokeCol.copy(ENGINE_SMOKE).lerp(ENGINE_SMOKE_DARK, hurt);       // pale steam at first, greyer as it gets worse
+    for (let k = 0; k < 3; k++) if (Math.random() < rate * dt / 3) {
+      car.localToWorld(_ev.set((Math.random() - 0.5) * 0.8, 1.75 + Math.random() * 0.3, -1.6 + Math.random() * 0.5));   // billows up over the cab roof
+      smoke.emit(_ev, (Math.random() - 0.5) * 1.4, 2.4 + Math.random() * 2.2, (Math.random() - 0.5) * 1.4, 1.6 + Math.random() * 1.4, 1.3, 6 + hurt * 4, 0.6 + hurt * 0.3, smokeCol);
+    }
+  }
   car.userData.head.intensity = ENV.night * 30;
   car.userData.lampMat.emissiveIntensity = 0.4 + ENV.night * 2.5;
   car.userData.tail.emissiveIntensity = pedal < 0 ? 4 : 0.5 + ENV.night * 0.8;   // brake lights
@@ -3701,7 +4240,7 @@ function updateWorld(dt, now) {
   // dust from the rear wheels and tire tracks
   car.localToWorld(wheelL.set(-0.96, 0.05, 1.45)); car.localToWorld(wheelR.set(0.96, 0.05, 1.45));
   _r.set(Math.cos(sample(carS).h), 0, Math.sin(sample(carS).h));
-  const rate = (ENV.dustAmt + (offRoad ? 0.8 : 0)) * (speed / 40) * (1 + Math.abs(yawRel) * 4);
+  const rate = offRoad ? (ENV.dustAmt + 0.8) * (speed / 40) * (1 + Math.abs(yawRel) * 4) : 0;   // tarmac: no trail (smoke is for drifts)
   for (const w of [wheelL, wheelR]) if (Math.random() < rate * dt * 30) {
     dust.emit(w, (Math.random() - 0.5) * 1.5 - _a.x * 2, 0.4 + Math.random() * 0.8, (Math.random() - 0.5) * 1.5 - _a.z * 2, 1.2 + Math.random() * 1.2, 0.6, 2.6 + Math.random() * 1.5, 0.28 * ENV.dustAmt + 0.06, ENV.dust);
   }
@@ -3714,10 +4253,18 @@ function updateWorld(dt, now) {
   });
   roadPoint(carS, lateral, 0, focus);
   wheelL.y = wheelR.y = focus.y + 0.02;
-  if (Math.abs(slide) > 0.2 && hopY < 0.15) {
+  // powder kicked up behind the tyres on a snow patch
+  if (onSnow > 0.2 && speed > 8 && hopY < 0.2) {
+    const n = onSnow * speed * 1.8 * dt;
+    for (const w of [wheelL, wheelR]) for (let i = 0; i < Math.floor(n + Math.random()); i++)
+      dust.emit(w, -_a.x * speed * 0.12 + (Math.random() - 0.5) * 2.6, 1.2 + Math.random() * 2.8, -_a.z * speed * 0.12 + (Math.random() - 0.5) * 2.6,
+        0.6 + Math.random() * 0.7, 0.5, 2.8 + Math.random() * 1.2, 0.85, snowU.col.value);
+    addTracks([wheelL, wheelR], _r, snowTrack.copy(snowU.col.value).multiplyScalar(0.72), 0.55 * onSnow);   // ruts through the powder
+  }
+  if ((Math.abs(slide) > 0.2 || spinT > 0) && hopY < 0.15) {
     // tire smoke + rubber on the road
     smokeCol.copy(SMOKE).lerp(ENV.dust, 0.3);
-    const n = Math.abs(slide) * speed * 3.8 * dt;
+    const n = (Math.abs(slide) + (spinT > 0 ? 0.9 : 0)) * speed * 3.8 * dt;
     for (const w of [wheelL, wheelR]) for (let i = 0; i < Math.floor(n + Math.random()); i++)
       smoke.emit(w, (Math.random() - 0.5) * 3.5, 0.5 + Math.random() * 1.6, (Math.random() - 0.5) * 3.5, 2.8 + Math.random() * 1.8, 1.4, 8 + Math.random() * 5, 0.42, smokeCol);
     addTracks([wheelL, wheelR], _r, ENV.trackA > 0.3 ? ENV.track : RUBBER, Math.max(0.38, ENV.trackA));
@@ -3730,33 +4277,64 @@ function updateWorld(dt, now) {
   trackTougeSection(prevCarS);
   if (state === 'playing' && bonusT > 0) bonusT = Math.max(0, bonusT - dt);
   updateTrails(clock, bonusT > 0);
-  updateSqueal();
+  updateSqueal(); updateEngine(); updatePump();
   updateFuel(dt);
-  if (state === 'playing') { const nx = nextStation(); if (nx && !nx.announced && nx.s - carS < 260) { nx.announced = true; if (fuel < 75) tagPop('gas station ahead', '#ffe1a3'); } }
+  updateAlerts();
+  // gas station heads-up: same banner as the drift zone, from ~400 m out until you're at the pumps (only if you could use fuel)
+  {
+    const nx = state === 'playing' && fuel < 75 ? nextStation() : null, d = nx ? nx.s - carS : Infinity;
+    const show = d < 400 && d > -STATION_LEN / 2 && !$('zoneBanner').classList.contains('on');
+    $('stationBanner').classList.toggle('on', show);
+    if (show) $('sbInfo').textContent = `${d > 15 ? Math.round(d / 10) * 10 + ' m' : 'now'} · lane on the ${nx.side < 0 ? 'left' : 'right'}`;
+  }
 
   // high, slow chase camera (diorama view)
   camZoom = lerp(camZoom, smooth(30, 90, speed), 1 - Math.exp(-dt * 1.5));   // pull back as speed builds
+  // in a drift zone: the camera comes in closer and the world drains to black and white (the road keeps its colour)
+  zoneFx = lerp(zoneFx, soloActive() ? smooth(0.2, 0.8, twistAt(carS + 20)) : 0, 1 - Math.exp(-dt * 1.6));
+  const zoneZoom = 1 - 0.22 * zoneFx;
   // user camera: distance (zoom), yaw (orbit round the car, in road coordinates) and tilt (height)
-  const back = (33 + camZoom * 11) * camUser.dist, up = Math.max(3.2, (21 + camZoom * 6) * camUser.dist * camUser.tilt);
+  const back = (33 + camZoom * 11) * camUser.dist * zoneZoom, up = Math.max(3.2, (21 + camZoom * 6) * camUser.dist * camUser.tilt * zoneZoom);
   roadPoint(carS - back * Math.cos(camUser.yaw), lateral * 0.35 + back * Math.sin(camUser.yaw), up, _a);
   camPos.set(_a.x, lerp(camPos.y, _a.y, 1 - Math.exp(-dt * 3)), _a.z);
-  const ahead = (22 + camZoom * 8) * camUser.dist;
+  const ahead = (22 + camZoom * 8) * camUser.dist * (1 - 0.12 * zoneFx);
   roadPoint(carS + ahead * Math.max(0.15, Math.cos(camUser.yaw)), lateral * 0.5, 0, _b);
   camLook.lerp(_b, 1 - Math.exp(-dt * 10));
   camera.position.copy(camPos);
   if (shake > 0.01) { camera.position.x += (Math.random() - 0.5) * shake; camera.position.y += (Math.random() - 0.5) * shake * 0.5; shake *= Math.exp(-dt * 5); }
   camera.lookAt(camLook);
+  tutCamBlendOut(dt);
   // keep at least ~58° horizontally so tall/portrait windows still see the countryside
   const minV = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(29)) / camera.aspect));
   camera.fov = lerp(camera.fov, Math.max(32, minV) + speed * 0.06 + vis.kick * 0.4 + Math.abs(slide) * 3, 1 - Math.exp(-dt * 4));
   camera.updateProjectionMatrix();
 
   // light, sky, fog
-  sunDir.set(Math.sin(ENV.sunAz) * Math.cos(ENV.sunEl), Math.sin(ENV.sunEl), -Math.cos(ENV.sunAz) * Math.cos(ENV.sunEl)).normalize();
+  // low winter sun (Sakura): the sun you SEE in the sky stays behind and to one side of the camera so it never glares
+  // into the view. The light that casts shadows is separate (below): fixed in the world and never lower than ~35°
+  let sunAz = ENV.sunAz;
+  if (ENV.sunBehind > 0.001) {
+    _a.copy(camLook).sub(camera.position);
+    const want = Math.atan2(-_a.x, _a.z) + 0.6;
+    if (sunFollowAz === null) sunFollowAz = want;
+    sunFollowAz += Math.atan2(Math.sin(want - sunFollowAz), Math.cos(want - sunFollowAz)) * Math.min(1, dt * 0.35);
+    sunAz += Math.atan2(Math.sin(sunFollowAz - sunAz), Math.cos(sunFollowAz - sunAz)) * ENV.sunBehind;
+  } else sunFollowAz = null;
+  sunDir.set(Math.sin(sunAz) * Math.cos(ENV.sunEl), Math.sin(ENV.sunEl), -Math.cos(sunAz) * Math.cos(ENV.sunEl)).normalize();
   const breathe = 0.95 + vis.level * 0.08 + vis.kick * 0.03;
+  // shadow light: same compass direction as the region's sun but raised, so shadows are short and steady (a 5° sun
+  // made long skinny ones), and its shadow camera moves in whole shadow-map texels so edges don't crawl as you drive
+  const lEl = Math.max(ENV.sunEl, 0.62);
+  lightDir.set(Math.sin(ENV.sunAz) * Math.cos(lEl), Math.sin(lEl), -Math.cos(ENV.sunAz) * Math.cos(lEl)).normalize();
   roadPoint(carS + 35, 0, 0, focus);
+  {
+    const sc = sunLight.shadow.camera, tex = (sc.right - sc.left) / sunLight.shadow.mapSize.x;
+    _lr.set(0, 1, 0).cross(lightDir).normalize(); _lu.copy(lightDir).cross(_lr).normalize();
+    const pr = Math.round(focus.dot(_lr) / tex) * tex, pu = Math.round(focus.dot(_lu) / tex) * tex, pf = focus.dot(lightDir);
+    focus.copy(_lr).multiplyScalar(pr).addScaledVector(_lu, pu).addScaledVector(lightDir, pf);
+  }
   sunLight.target.position.copy(focus);
-  sunLight.position.copy(focus).addScaledVector(sunDir, 200);
+  sunLight.position.copy(focus).addScaledVector(lightDir, 200);
   sunLight.color.copy(ENV.sun); sunLight.intensity = ENV.sunI * breathe;
   hemi.color.copy(ENV.hemiS); hemi.groundColor.copy(ENV.hemiG); hemi.intensity = ENV.hemiI * breathe;
   scene.fog.color.copy(ENV.fog); scene.fog.near = ENV.fogNear; scene.fog.far = ENV.fogFar;
@@ -3781,6 +4359,7 @@ function updateWorld(dt, now) {
   const scale = renderer.getDrawingBufferSize(_v).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
   for (const m of pointMats) m.uniforms.uScale.value = scale;
   grade.uniforms.time.value = clock % 100;
+  updateEdgeLines();
   fieldTime.value = clock % 1000;
   paddyWaterMat.color.copy(ENV.hor).lerp(ENV.top, 0.35);
   grade.uniforms.warm.value.setRGB(lerp(1.03, 1.07, ENV.golden), 1.0, lerp(0.95, 0.9, ENV.golden));   // golden hour (sunlight does most of the warming)
@@ -3803,7 +4382,14 @@ function updateWorld(dt, now) {
   gateGlowMat.color.set('#ffd77a').lerp(gateFlash.color, Math.min(1, gateFlash.t * 1.5));
   gateGlowMat.opacity = Math.min(1, 0.55 + vis.kick * 0.45 + gateFlash.t * 0.45);
   fx.flash *= Math.exp(-dt * 3.2); fx.punch *= Math.exp(-dt * 5); fx.desat *= Math.exp(-dt * 2.2);
-  grade.uniforms.fxFlash.value = fx.flash; grade.uniforms.fxPunch.value = fx.punch; grade.uniforms.fxDesat.value = fx.desat;
+  // low health drains the colour out of the world and muffles the mix; a wreck takes both further
+  const hurtFx = state === 'wrecking' ? 1 : state === 'playing' ? smooth(40, 6, health) : 0;
+  grade.uniforms.fxFlash.value = fx.flash; grade.uniforms.fxPunch.value = fx.punch; grade.uniforms.fxDesat.value = Math.max(fx.desat, hurtFx * 0.7);
+  if (outBus) {
+    const t = ctx.currentTime, w = state === 'wrecking';
+    outLP.frequency.setTargetAtTime(w ? 600 : 20000 - 18200 * hurtFx, t, w ? 0.6 : 0.3);
+    outBus.gain.setTargetAtTime(w ? 0.22 : 1 - 0.35 * hurtFx, t, w ? 0.8 : 0.3);
+  }
   grade.uniforms.fxTint.value.copy(fx.tint);
   ink.uniforms.fadeFar.value = ENV.fogFar;
   ink.uniforms.inkCol.value.set('#1a1426').lerp(tmpC.set('#05040c'), ENV.night);
@@ -3812,8 +4398,8 @@ function updateWorld(dt, now) {
 }
 
 // debug handle for the console
-window.beatRoad = { gfx: { scene, camera, composer, car, renderer, traffic, camUser, cargoDamage, get cargo() { return cargo; }, endGame, analyzeBuffer, get ctx() { return ctx; } }, get bpm() { return tempoP ? 60 / tempoP : 0; }, notes, stats, settings, get drift() { return { drifting, driftDir, slide, driftPts, driftT, speed, kappa: kappaAt(carS), hopY }; },
-  get health() { return health; }, get bonusT() { return bonusT; }, set bonusT(v) { bonusT = v; }, get traffic() { return traffic.length; }, get section() { return { inTouge, secFlips, secPerfects, secScore, secClips, secGreatClips, secClipScore, bonusLen }; },
+window.beatRoad = { gfx: { scene, camera, composer, car, renderer, traffic, camUser, cargoDamage, get cargo() { return cargo; }, endGame, analyzeBuffer, get ctx() { return ctx; }, snowPatch, get onSnow() { return onSnow; }, get audio() { return { eng: eng && { gain: eng.out.gain.value, f: eng.oscs[0].o.frequency.value }, pump: pump && pump.out.gain.value }; } }, get bpm() { return tempoP ? 60 / tempoP : 0; }, notes, stats, settings, get drift() { return { drifting, driftDir, slide, driftPts, driftT, speed, kappa: kappaAt(carS), hopY }; },
+  get health() { return health; }, set health(v) { setHealth(v); }, get bonusT() { return bonusT; }, set bonusT(v) { bonusT = v; }, get traffic() { return traffic.length; }, get section() { return { inTouge, secFlips, secPerfects, secScore, secClips, secGreatClips, secClipScore, bonusLen }; },
   region2(name) { const i = BIOMES.findIndex(b => b.name === name); let k = Math.floor(carS / BIOME_LEN) + 1; while (regionAt(k) !== i) k++; carS = k * BIOME_LEN + 250; return carS; },
   get chain() { return { active: chain.active, entries: chain.entries, idle: chain.idle, topRun }; },
   nextBridge() { for (let j = Math.floor(carS / BRIDGE_SEG) + 1; j < 60; j++) { const sp = bridgeSpan(j); if (sp) return sp; } return null; },
@@ -3837,6 +4423,7 @@ function frame() {
   requestAnimationFrame(frame);
   const t = performance.now(), dt = Math.min(0.05, (t - lastT) / 1000); lastT = t;
   if (state === 'paused') { composer.render(); return; }
+  if (state === 'tutfocus') { tutFocusFrame(dt); composer.render(); return; }
   let now = t / 1000;
   if (state === 'playing' || state === 'wrecking') {
     now = ctx.currentTime;
@@ -3845,17 +4432,22 @@ function frame() {
     consumeFrames(now, dt);
     updateNotes(now, dt);
     const elapsed = now - run.start;
-    $('ready').classList.toggle('hidden', elapsed > LOOKAHEAD);
     if (run.duration) $('progressFill').style.width = Math.min(100, Math.max(0, (elapsed - LOOKAHEAD) / run.duration * 100)) + '%';
     if (run.kind === 'demo' && elapsed > run.duration + LOOKAHEAD + 0.5) endGame();
-    if (run.kind === 'tutorial') loopTutorialSong(elapsed);   // the demo has a fixed length (audio clock, so pausing is fine)
+    if (run.kind === 'tutorial' || run.kind === 'drift') loopTutorialSong(elapsed);   // the demo has a fixed length (audio clock, so pausing is fine)
   }
   updateWorld(dt, now);
   if (state !== 'menu') {
     tagV.copy(car.position); tagV.y -= 0.2; tagV.project(camera);
     $('carTag').style.transform = `translate(${(tagV.x * 0.5 + 0.5) * innerWidth}px, ${(-tagV.y * 0.5 + 0.5) * innerHeight + 26}px) translate(-50%, 0)`;
+    if (alertFuelOn || alertHealthOn) {                            // warning lamps: just right of the cab
+      tagV.copy(car.position); tagV.y += 1.6; tagV.project(camera);
+      $('warnLamps').style.transform = `translate(${(tagV.x * 0.5 + 0.5) * innerWidth + 34}px, ${(-tagV.y * 0.5 + 0.5) * innerHeight - 30}px)`;
+    }
   }
   dust.update(dt); sparkles.update(dt); smoke.update(dt); petalFx.update(dt); updateDebris(dt);
+  ink.uniforms.mono.value = zoneFx;
+  if (zoneFx > 0.001) renderRoadMask();
   composer.render();
 }
 frame();
