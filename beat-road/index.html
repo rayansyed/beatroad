@@ -434,6 +434,18 @@
   #tutText mark, .tcText mark { background:rgba(255,210,63,.18); color:var(--pop-y); box-shadow:inset 0 -2px 0 var(--pop-o); }
   #tut.done { box-shadow:6px 6px 0 var(--pop-g), 6px 6px 0 3px var(--ink-k); }
   #fadeCut { background:#141218; }
+  /* level loading screen — covers the menu so a second click can't start the song twice */
+  #loadScreen { position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; padding:16px; background:var(--halftone), rgba(20,18,24,.92); opacity:0; pointer-events:none; transition:opacity .25s; }
+  #loadScreen.on { opacity:1; pointer-events:auto; }
+  #loadCard { width:min(420px, 100%); padding:22px 22px 20px; background:#1a1720; color:#f4f0e8; border:3px solid #f4f0e8; border-radius:6px; box-shadow:6px 6px 0 var(--pop-c), 6px 6px 0 3px var(--ink-k); font-family:var(--font); transform:translateY(8px); transition:transform .25s; }
+  #loadScreen.on #loadCard { transform:none; }
+  #loadKicker { font-size:11px; font-weight:800; letter-spacing:.2em; text-transform:uppercase; color:var(--pop-y); }
+  #loadTitle { font-size:clamp(26px, 7vw, 38px); font-weight:900; text-transform:uppercase; color:#fff; -webkit-text-stroke:0.08em var(--ink-k); paint-order:stroke fill; margin:2px 0 14px; line-height:1.05; overflow-wrap:anywhere; }
+  #loadBar { height:16px; border:3px solid #f4f0e8; background:#24202b; overflow:hidden; }
+  #loadFill { height:100%; width:0; background:repeating-linear-gradient(-45deg, var(--pop-o) 0 10px, var(--pop-y) 10px 20px); background-size:28px 28px; animation:loadStripes .6s linear infinite; transition:width .2s; }
+  @keyframes loadStripes { to { background-position:28px 0; } }
+  #loadStatus { margin-top:10px; font-size:13px; font-weight:700; color:#a9a2b4; display:flex; justify-content:space-between; gap:12px; }
+  #loadStatus b { color:#fff; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -474,6 +486,7 @@
 <div id="tutCallout"><div class="tcKicker">Heads up</div><div class="tcTitle"></div><div class="tcText"></div><div class="tcGo"><kbd>Enter</kbd> or <kbd>Space</kbd> to continue</div></div>
 <div id="tut"><div class="tutTop"><span id="tutStep"></span><span class="tutKeys"><kbd>Enter</kbd> skip step</span></div><div id="tutTitle"></div><div id="tutText"></div><div class="tutCheck">✓</div></div>
 <div id="fadeCut"></div>
+<div id="loadScreen" role="status" aria-live="polite"><div id="loadCard"><div id="loadKicker">Loading level</div><div id="loadTitle"></div><div id="loadBar"><div id="loadFill"></div></div><div id="loadStatus"><span id="loadStep">Fetching the track…</span><b id="loadPct">0%</b></div></div></div>
 
 <div id="menu" class="overlay">
   <div class="panel">
@@ -3660,21 +3673,43 @@ function resetWorld(lb) {
   currentRegion = -1; updateEnv(carS);
   for (let i = 0; i < 8; i++) updateChunks(carS, 8);
 }
+// loading screen: fetch 0–25%, decode 25–35%, beat analysis 35–100%
+function loadShow(kicker, title) { $('loadKicker').textContent = kicker; $('loadTitle').textContent = title; loadProgress(0, 'Fetching the track…'); $('loadScreen').classList.add('on'); }
+function loadProgress(p, step) { $('loadFill').style.width = Math.round(p * 100) + '%'; $('loadPct').textContent = Math.round(p * 100) + '%'; if (step) $('loadStep').textContent = step; }
+function loadHide() { $('loadScreen').classList.remove('on'); }
+async function fetchWithProgress(url, onP) {
+  const r = await fetch(url); if (!r.ok) throw new Error(r.status);
+  const total = +r.headers.get('content-length') || 0;
+  if (!total || !r.body) return r.arrayBuffer();
+  const rd = r.body.getReader(), parts = []; let got = 0;
+  for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; onP(got / total); }
+  const out = new Uint8Array(got); let o = 0; for (const p of parts) { out.set(p, o); o += p.length; }
+  return out.buffer;
+}
 async function loadLevelTrack(L) {
   if (L.analysis) return L.analysis;
-  showErr('Loading ' + L.name + '…');
-  const buf = await ctx.decodeAudioData(await (await fetch(L.track)).arrayBuffer());
-  const res = await analyzeBuffer(buf, p => showErr(`Analyzing ${L.name}… ${Math.round(p * 100)}%`));
-  showErr('');
+  const raw = await fetchWithProgress(L.track, p => loadProgress(p * 0.25));
+  loadProgress(0.25, 'Decoding audio…');
+  const buf = await ctx.decodeAudioData(raw);
+  loadProgress(0.35, 'Finding the beats…');
+  const res = await analyzeBuffer(buf, p => loadProgress(0.35 + p * 0.65));
+  loadProgress(1, 'Building the road…');
   return (L.analysis = { buffer: buf, ...res });
 }
+let levelLoading = false;   // one level start at a time — a double-click mustn't load / play the song twice
 async function startLevel(i) {
+  if (levelLoading || state === 'playing') return;
+  levelLoading = true;
+  try { await startLevelInner(i); } finally { levelLoading = false; loadHide(); }
+}
+async function startLevelInner(i) {
   const L = LEVELS[i];
   showErr(''); ensureAudio();
   BIOME_LEN = L.regionLen || 1700; regionPlan = L.route || null;
   if (L.track) {
     let A;
-    try { A = await loadLevelTrack(L); } catch (e) { showErr('Couldn’t load ' + L.name + '.'); return; }
+    if (!L.analysis) { loadShow(`Level ${i + 1}`, L.name); await new Promise(r => setTimeout(r, 30)); }
+    try { A = await loadLevelTrack(L); } catch (e) { loadHide(); showErr('Couldn’t load ' + L.name + '.'); return; }
     tougeMode = 'song'; scheduled.length = 0;
     resetWorld(L.biome);
     const src = ctx.createBufferSource(); src.buffer = A.buffer;
