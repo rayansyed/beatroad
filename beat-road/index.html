@@ -135,6 +135,7 @@
   #agState { font-size:10px; font-weight:800; letter-spacing:.16em; }
   #agState.low, #agState.high { color:#ff8a6a; } #agState.warn { color:#ffc24a; } #agState.good { color:#7fe9a0; }
   #carTag { position:absolute; left:0; top:0; text-align:center; white-space:nowrap; will-change:transform; }
+  #chainWrap { position:absolute; left:0; top:0; text-align:center; white-space:nowrap; will-change:transform; }   /* down on the road you've already driven, below the truck */
   #chain { min-width:210px; padding:9px 14px 10px; border-radius:12px; background:rgba(30,26,20,.34); backdrop-filter:blur(3px); opacity:0; transition:opacity .25s; }
   #chain.on { opacity:1; }
   #chainRows .r { display:flex; justify-content:space-between; gap:16px; font-size:15px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; opacity:.55; line-height:1.6; }
@@ -462,9 +463,8 @@
   <div id="yen"><span class="ysym">¥</span><span id="yenVal">0</span></div>
   <div id="cargo" class="off"><span id="cargoIcon">酒</span><span class="clbl">CARGO</span><div class="cBar"><div id="cargoFill"></div></div><span id="cargoPct">100%</span></div>
   <div id="angleGauge"><svg viewBox="0 0 120 68"><g fill="none" stroke-width="9" stroke-linecap="butt"><path d="M10.0 60.0 A50 50 0 0 1 20.9 28.8" stroke="#ff5a3d"/><path d="M20.9 28.8 A50 50 0 0 1 30.6 19.5" stroke="#ffc24a"/><path d="M30.6 19.5 A50 50 0 0 1 89.4 19.5" stroke="#7fe9a0"/><path d="M89.4 19.5 A50 50 0 0 1 100.5 30.6" stroke="#ffc24a"/><path d="M100.5 30.6 A50 50 0 0 1 110.0 60.0" stroke="#ff5a3d"/></g><line id="agNeedle" x1="60" y1="60" x2="60" y2="16" stroke="#fff" stroke-width="4" stroke-linecap="round"/><circle cx="60" cy="60" r="5" fill="#fff"/></svg><div id="agText"><b id="agDeg">0°</b><span id="agState"></span></div></div>
-  <div id="carTag"><div id="tagPop"></div>
-    <div id="chain"><div id="chainRows"></div><div id="chainFoot"><span id="chainMult">chain ×1</span><span id="chainTotal">0</span></div><div id="chainTimer"><div id="chainTimerFill"></div></div></div>
-  </div>
+  <div id="carTag"><div id="tagPop"></div></div>
+  <div id="chainWrap"><div id="chain"><div id="chainRows"></div><div id="chainFoot"><span id="chainMult">chain ×1</span><span id="chainTotal">0</span></div><div id="chainTimer"><div id="chainTimerFill"></div></div></div></div>
   <div id="cluster"></div>
   <div id="bonus"><div id="bonusLabel">峠 boost · ×2</div><div id="bonusBar"><div id="bonusFill"></div></div></div>
   <div class="hud-right">
@@ -5926,11 +5926,20 @@ function frame() {
   updateWorld(dt, now);
   if (state !== 'menu') {
     tagV.copy(car.position); tagV.y -= 0.2; tagV.project(camera);
-    // keep a tall chain card clear of the gauge cluster: if its bottom would run past the cluster's top, lift it
-    let tagY = (-tagV.y * 0.5 + 0.5) * innerHeight + 26;
-    const card = $('chain'), clusterTop = $('cluster').getBoundingClientRect().top;
-    if (card.classList.contains('on')) tagY = Math.min(tagY, clusterTop - 12 - card.offsetHeight);
-    $('carTag').style.transform = `translate(${(tagV.x * 0.5 + 0.5) * innerWidth}px, ${tagY}px) translate(-50%, 0)`;
+    const tagX = (tagV.x * 0.5 + 0.5) * innerWidth, tagY = (-tagV.y * 0.5 + 0.5) * innerHeight + 26;
+    $('carTag').style.transform = `translate(${tagX}px, ${tagY}px) translate(-50%, 0)`;
+    // the skill chain sits at the bottom of the screen, on the stretch of road behind the truck — never over the road
+    // ahead. It follows the truck sideways, steps left of the gauge cluster, and only sits on top of the cluster when
+    // the screen's too narrow for both side by side
+    {
+      const card = $('chain'), w = card.offsetWidth, h = card.offsetHeight, cl = $('cluster').getBoundingClientRect();
+      let x = Math.max(16 + w / 2, Math.min(innerWidth - 16 - w / 2, tagX)), bottom = innerHeight - 14;
+      if (x + w / 2 > cl.left - 12 && bottom > cl.top) {
+        const xl = cl.left - 12 - w / 2;
+        if (xl - w / 2 >= 16) x = xl; else bottom = cl.top - 12;
+      }
+      $('chainWrap').style.transform = `translate(${x}px, ${bottom - h}px) translate(-50%, 0)`;
+    }
     updateAngleGauge();
     if (alertFuelOn || alertHealthOn) {                            // warning lamps: just right of the cab
       tagV.copy(car.position); tagV.y += 1.6; tagV.project(camera);
