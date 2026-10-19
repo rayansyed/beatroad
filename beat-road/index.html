@@ -99,7 +99,13 @@
   details { margin-top:16px; color:var(--muted); font-size:14px; line-height:1.55; }
   summary { cursor:pointer; color:var(--ink); font-weight:600; }
   details ol { padding-left:20px; margin:8px 0; }
-  .keys { margin-top:16px; font-size:13px; color:var(--muted); }
+  .keys { margin-top:16px; font-size:13px; color:var(--muted); display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px 22px; }
+  .keys .kh { font-size:11px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; margin-bottom:4px; }
+  .keys .kr { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:3px 0; border-bottom:1px dashed var(--line); }
+  .keys .kk { white-space:nowrap; } .keys .kv { text-align:right; }
+  .keys .kon { display:none; margin-left:6px; padding:0 6px; border-radius:4px; background:#47b36b; color:#fff; letter-spacing:.08em; }
+  .keys.pad .kon { display:inline; } .keys.pad #keysPad { order:-1; }   /* a controller is plugged in: its list comes first */
+  .keys .knote { grid-column:1 / -1; font-size:12px; opacity:.85; }
   kbd { background:var(--paper-2); border:1px solid var(--line); border-radius:5px; padding:0 6px; font-family:inherit; font-size:12px; }
   #err { margin-top:12px; color:#b0432a; font-size:14px; min-height:1em; }
   .row { display:flex; gap:10px; margin-top:20px; flex-wrap:wrap; }
@@ -555,7 +561,7 @@
       </ol>
       Spotify doesn't let web apps read the raw audio of a track, so the game captures the tab's audio instead. Skip songs in Spotify as usual. The drive continues until you stop sharing.
     </details>
-    <div class="keys"><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> steer · double-tap ← / → to dash sideways, ↑ / <kbd>W</kbd> to dash forward (dash into a car to knock it flying) · <kbd>↑</kbd> / <kbd>↓</kbd> throttle / brake in Drift Mode &amp; Rival Finale · hold <kbd>Space</kbd> in corners to drift, tap it again where an S-bend switches to transition · tap <kbd>Space</kbd> at a rail to grind (it holds on by itself — tap again to transfer or hop off), or on a ramp lip for air · <kbd>P</kbd> / <kbd>Esc</kbd> pause · camera: mouse wheel or <kbd>-</kbd> <kbd>=</kbd> zoom, right-drag or <kbd>Q</kbd> <kbd>E</kbd> / <kbd>R</kbd> <kbd>F</kbd> to orbit and tilt, <kbd>C</kbd> resets · on touch screens, hold the left or right side to steer, add a second finger to drift, lift and re-tap it to transition · <b>Xbox controller</b>: left stick steers, <kbd>A</kbd> = Space, <kbd>LB</kbd> <kbd>RB</kbd> dash sideways, <kbd>LB</kbd> + <kbd>RB</kbd> together dash forward, <kbd>RT</kbd> / <kbd>LT</kbd> gas / brake (Drift Mode &amp; Rival Finale), <kbd>B</kbd> skip tutorial step, <kbd>☰</kbd> pause, right stick orbits the camera · D-pad + <kbd>A</kbd> / <kbd>B</kbd> in menus</div>
+    <div class="keys"><div class="kcol" id="keysKb"><div class="kh">Keyboard</div><div class="kr"><span class="kk"><kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd></span><span class="kv">Steer</span></div><div class="kr"><span class="kk">Double-tap <kbd>←</kbd> / <kbd>→</kbd></span><span class="kv">Dash sideways</span></div><div class="kr"><span class="kk"><kbd>↑</kbd> / <kbd>W</kbd></span><span class="kv">Dash forward</span></div><div class="kr"><span class="kk"><kbd>↑</kbd> <kbd>↓</kbd></span><span class="kv">Gas / brake (Drift Mode, Rival Finale)</span></div><div class="kr"><span class="kk">Hold <kbd>Space</kbd></span><span class="kv">Drift in corners</span></div><div class="kr"><span class="kk">Tap <kbd>Space</kbd></span><span class="kv">Transition, grind a rail, launch off a ramp, gold shards</span></div><div class="kr"><span class="kk"><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> on a rail</span><span class="kv">Switch grind tricks</span></div><div class="kr"><span class="kk"><kbd>C</kbd></span><span class="kv">Switch camera (default / zoomed out)</span></div><div class="kr"><span class="kk"><kbd>P</kbd> / <kbd>Esc</kbd></span><span class="kv">Pause</span></div><div class="kr"><span class="kk"><kbd>Enter</kbd></span><span class="kv">Skip a tutorial step</span></div></div><div class="kcol" id="keysPad"><div class="kh">Xbox controller <span class="kon">connected</span></div><div class="kr"><span class="kk">Left stick / D-pad</span><span class="kv">Steer</span></div><div class="kr"><span class="kk"><kbd>LB</kbd> / <kbd>RB</kbd></span><span class="kv">Dash sideways</span></div><div class="kr"><span class="kk"><kbd>LB</kbd> + <kbd>RB</kbd></span><span class="kv">Dash forward</span></div><div class="kr"><span class="kk"><kbd>RT</kbd> / <kbd>LT</kbd></span><span class="kv">Gas / brake (Drift Mode, Rival Finale)</span></div><div class="kr"><span class="kk">Hold <kbd>A</kbd></span><span class="kv">Drift in corners</span></div><div class="kr"><span class="kk">Tap <kbd>A</kbd></span><span class="kv">Transition, grind a rail, launch off a ramp, gold shards</span></div><div class="kr"><span class="kk">Stick / D-pad on a rail</span><span class="kv">Switch grind tricks</span></div><div class="kr"><span class="kk"><kbd>View</kbd></span><span class="kv">Switch camera</span></div><div class="kr"><span class="kk"><kbd>☰</kbd></span><span class="kv">Pause</span></div><div class="kr"><span class="kk"><kbd>B</kbd></span><span class="kv">Skip a tutorial step</span></div><div class="kr"><span class="kk">D-pad + <kbd>A</kbd> / <kbd>B</kbd></span><span class="kv">Menus</span></div></div><div class="kcol" id="keysTouch"><div class="kh">Touch</div><div class="kr"><span class="kk">Hold left / right side</span><span class="kv">Steer</span></div><div class="kr"><span class="kk">Second finger</span><span class="kv">Drift</span></div><div class="kr"><span class="kk">Lift and re-tap</span><span class="kv">Transition</span></div></div><div class="knote">Dash into a car to knock it flying.</div></div>
     <div id="err"></div>
   </div>
 </div>
@@ -5731,7 +5737,7 @@ addEventListener('keydown', e => {
 // ---------------------------------------------------------------- Xbox (and other standard-layout) controllers
 // Driving: left stick steers (analog), D-pad also steers · A = Space (drift, transitions, grind, transfers, ramps, gold
 // taps, block / parry) · RT gas, LT brake (analog; Drift Mode / Rival Finale) · LB / RB dash left / right, LB + RB together
-// dash forward · B skips a tutorial step · Menu pauses · right stick orbits the camera, View resets it.
+// dash forward · B skips a tutorial step · Menu pauses · View switches the camera.
 // In menus: D-pad / left stick moves between buttons, A presses, B goes back. Hits, parries and blasts rumble.
 const PAD = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, VIEW: 8, MENU: 9, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
 const pad = { prev: [], idx: -1, navT: 0, focus: null, bump: null }, BUMP_WIN = 0.07;
@@ -5775,8 +5781,7 @@ function pollPad(dt) {
     if (pad.bump && (pad.bump.t -= dt) <= 0) { dash(pad.bump.dir); pad.bump = null; }
     if (down(PAD.B) && run.kind === 'tutorial') tutSkip();
     if (down(PAD.MENU) && state === 'playing') setPaused(true);
-    if (rx || ry) setCam({ yaw: camUser.yaw + rx * dt * 1.6, tilt: camUser.tilt - ry * dt * 0.8 });
-    if (down(PAD.VIEW)) setCam(CAM_DEFAULT);
+    if (down(PAD.VIEW)) cycleCam();
   } else {
     held.padX = 0; held.padDir = null; held.padGas = held.padBrake = 0;
     if (held.hold && !now(PAD.A)) actionUp();
@@ -5810,40 +5815,31 @@ function setPadFocus(el) {
   try { el.focus({ preventScroll: true }); } catch {}
   el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
-// ---------------------------------------------------------------- camera controls (saved per browser)
-const CAM_DEFAULT = { dist: 1, yaw: 0, tilt: 1 };
-const camUser = { ...CAM_DEFAULT };
-try { Object.assign(camUser, JSON.parse(localStorage.getItem('beatroad-cam') || '{}')); } catch {}
-function setCam(d) {
-  camUser.dist = Math.min(1.8, Math.max(0.4, d.dist ?? camUser.dist));
-  camUser.yaw = Math.min(1.4, Math.max(-1.4, d.yaw ?? camUser.yaw));
-  camUser.tilt = Math.min(1.8, Math.max(0.3, d.tilt ?? camUser.tilt));
-  try { localStorage.setItem('beatroad-cam', JSON.stringify(camUser)); } catch {}
+// ---------------------------------------------------------------- camera: C (or View on a controller) flips between
+// two set angles — the default chase cam and a zoomed-out one that shows more road. The choice is saved per browser
+const CAM_VIEWS = [{ dist: 1, yaw: 0, tilt: 0.7, name: 'default camera' }, { dist: 1.4, yaw: 0, tilt: 0.75, name: 'zoomed-out camera' }];   // tilt < 1: lower, looking out toward the horizon
+let camView = 0;
+try { camView = +localStorage.getItem('beatroad-camview') === 1 ? 1 : 0; } catch {}
+const camUser = { ...CAM_VIEWS[camView] };
+function cycleCam() {
+  camView = (camView + 1) % CAM_VIEWS.length; Object.assign(camUser, CAM_VIEWS[camView]);
+  try { localStorage.setItem('beatroad-camview', String(camView)); } catch {}
+  if (state === 'playing') tagPop(CAM_VIEWS[camView].name, '#fff6e4');
 }
-renderer.domElement.addEventListener('wheel', e => { e.preventDefault(); setCam({ dist: camUser.dist * Math.exp(e.deltaY * 0.0012) }); }, { passive: false });
 renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
-let orbit = null;   // right/middle-drag orbits and tilts
-addEventListener('keydown', e => {
-  const k = e.key.toLowerCase();
-  if (k === 'q') setCam({ yaw: camUser.yaw - 0.08 }); else if (k === 'e') setCam({ yaw: camUser.yaw + 0.08 });
-  else if (k === 'r') setCam({ tilt: camUser.tilt + 0.05 }); else if (k === 'f') setCam({ tilt: camUser.tilt - 0.05 });
-  else if (k === '-' || k === '_') setCam({ dist: camUser.dist * 1.08 }); else if (k === '=' || k === '+') setCam({ dist: camUser.dist / 1.08 });
-  else if (k === 'c' && !e.repeat) { setCam(CAM_DEFAULT); if (state === 'playing') tagPop('camera reset', '#fff6e4'); }
-});
+addEventListener('keydown', e => { if (e.key.toLowerCase() === 'c' && !e.repeat) cycleCam(); });
 // touch / mouse: hold either half of the screen; further from centre = sharper
 const pointerSteer = e => { held.pointer = Math.max(-1, Math.min(1, (e.clientX / innerWidth - 0.5) * 3)); };
 renderer.domElement.addEventListener('pointerdown', e => {
   renderer.domElement.setPointerCapture(e.pointerId);
-  if (e.pointerType === 'mouse' && (e.button === 1 || e.button === 2)) { orbit = { x: e.clientX, y: e.clientY }; return; }
+  if (e.pointerType === 'mouse' && (e.button === 1 || e.button === 2)) return;
   if (e.pointerType === 'touch' && ++held.touches >= 2) return;   // second finger = drift, keep steering from the first
   pointerSteer(e);
 });
 renderer.domElement.addEventListener('pointermove', e => {
-  if (orbit) { setCam({ yaw: camUser.yaw + (e.clientX - orbit.x) * 0.005, tilt: camUser.tilt - (e.clientY - orbit.y) * 0.004 }); orbit.x = e.clientX; orbit.y = e.clientY; return; }
   if (e.buttons || e.pointerType === 'touch') pointerSteer(e);
 });
 for (const ev of ['pointerup', 'pointercancel']) renderer.domElement.addEventListener(ev, e => {
-  if (orbit) { orbit = null; return; }
   if (e.pointerType === 'touch') held.touches = Math.max(0, held.touches - 1);
   if (held.touches === 0) held.pointer = 0;
 });
@@ -6273,39 +6269,52 @@ $('cdList').onclick = e => {
 // (a "callout"); the HUD parts a step talks about glow, and the key words are highlighted.
 const kbd = k => `<kbd>${k}</kbd>`;
 const M = t => `<mark>${t}</mark>`;
+// with a controller plugged in, the tutorial names its buttons instead of the keys
+const padOn = () => [...(navigator.getGamepads ? navigator.getGamepads() : [])].some(g => g && g.connected);
+const SPACE = () => padOn() ? kbd('A') : kbd('Space');
+function padChanged() {
+  document.querySelector('.keys')?.classList.toggle('pad', padOn());
+  if (tut && TUT_STEPS[tut.i]) { $('tutText').innerHTML = TUT_STEPS[tut.i].text; tutKeyHints(); }
+}
+addEventListener('gamepadconnected', padChanged); addEventListener('gamepaddisconnected', padChanged);
+setTimeout(padChanged, 0);
+function tutKeyHints() {
+  $('tut').querySelector('.tutKeys').innerHTML = `${padOn() ? kbd('B') : kbd('Enter')} skip step`;
+  $('tutCallout').querySelector('.tcGo').innerHTML = padOn() ? `${kbd('A')} to continue` : `${kbd('Enter')} or ${kbd('Space')} to continue`;
+}
 const tutSettled = o => !!o && performance.now() - o.born > 800;   // only call things out once they've finished appearing (they'd freeze mid-fade)
 const tutLanternPos = n => tutSettled(n) && n.mesh.position.clone().setY(n.mesh.position.y - (LANTERN_H / 2 + 1.4) * LANTERN_SCALE);
 // the first not-yet-reached note of a kind, 25–80 m ahead
 const noteAhead = (pred) => notes.find(n => !n.judged && !n.dead && n.s - carS > 25 && n.s - carS < 80 && pred(n));
 const TUT_STEPS = [
-  { title: 'Steering', text: `Hold ${M(kbd('←') + ' ' + kbd('→'))} or ${kbd('A')} ${kbd('D')} to steer. A quick tap nudges the truck; holding slides it across the road. ${M('Steer to both sides.')}`,
+  { title: 'Steering', get text() { return `${padOn() ? 'Push the ' + M('left stick') : 'Hold ' + M(kbd('←') + ' ' + kbd('→')) + ' or ' + kbd('A') + ' ' + kbd('D')} to steer. A quick tap nudges the truck; holding slides it across the road. ${M('Steer to both sides.')}`; },
     enter(t) { t.minL = 0; t.maxL = 0; },
     check(t) { t.minL = Math.min(t.minL, lateral); t.maxL = Math.max(t.maxL, lateral); return t.minL < -3.5 && t.maxL > 3.5; } },
-  { title: 'Dash', text: `${M('Double-tap ' + kbd('←') + ' or ' + kbd('→'))} to ${M('dash')} sideways, or ${M('double-tap ' + kbd('↑'))} to lunge forward. Use it to grab a shard that's out of reach, dodge a car at the last moment — or dash straight into one to knock it flying. ${M('Dash left, right and forward.')}`,
+  { title: 'Dash', get text() { return `${padOn() ? M('Tap ' + kbd('LB') + ' or ' + kbd('RB')) : M('Double-tap ' + kbd('←') + ' or ' + kbd('→'))} to ${M('dash')} sideways, or ${padOn() ? M('press ' + kbd('LB') + ' + ' + kbd('RB') + ' together') : M('double-tap ' + kbd('↑'))} to lunge forward. Use it to grab a shard that's out of reach, dodge a car at the last moment — or dash straight into one to knock it flying. ${M('Dash left, right and forward.')}`; },
     enter(t) { t.dirs = {}; t.base = stats.dashDirs || {}; stats.dashDirs = {}; },
     check() { const d = stats.dashDirs || {}; return d[-1] && d[1] && d.f; } },
-  { title: 'Record shards', text: `${M('Record shards')} — broken vinyl — land on the beats of the music — each one's a piece of the song. Drive through ${M('3 shards')}. Every 8 in a row raises your ${M('multiplier')} (top right).`,
+  { title: 'Record shards', get text() { return `${M('Record shards')} — broken vinyl — land on the beats of the music — each one's a piece of the song. Drive through ${M('3 shards')}. Every 8 in a row raises your ${M('multiplier')} (top right).`; },
     hud: ['multRing'],
     focus: [{ find: () => { const n = noteAhead(n => n.type === 'orb' && !n.gold); return n && tutLanternPos(n); },
-      title: 'A record shard', text: `Steer through it as it reaches you — it's timed to the beat. Colours tell you the sound: ${M('red')} bass, ${M('blue')} mids, ${M('purple')} highs.` }],
+      title: 'A record shard', get text() { return `Steer through it as it reaches you — it's timed to the beat. Colours tell you the sound: ${M('red')} bass, ${M('blue')} mids, ${M('purple')} highs.`; } }],
     enter(t) { t.base = stats.lanterns || 0; },
     check(t) { return (stats.lanterns || 0) - t.base >= 3; } },
-  { title: 'Gold runs', text: `Sometimes a run of ${M('gold shards')} comes along. Drive through each one and ${M('tap ' + kbd('Space'))} as you reach it. Clear the whole run for a ${M('boost')}. ${M('Clear a gold run.')}`,
+  { title: 'Gold runs', get text() { return `Sometimes a run of ${M('gold shards')} comes along. Drive through each one and ${M('tap ' + SPACE())} as you reach it. Clear the whole run for a ${M('boost')}. ${M('Clear a gold run.')}`; },
     focus: [{ find: () => { const n = noteAhead(n => n.gold); return n && tutLanternPos(n); },
-      title: 'Gold shard', text: `A ring closes in around it — ${M('tap ' + kbd('Space'))} when the ring meets the shard. Get every shard in the run: ×2 score, a burst of speed and a top-up of health and fuel.` }],
+      title: 'Gold shard', get text() { return `A ring closes in around it — ${M('tap ' + SPACE())} when the ring meets the shard. Get every shard in the run: ×2 score, a burst of speed and a top-up of health and fuel.`; } }],
     enter(t) { t.base = stats.goldOk || 0; tutGold = true; goldNextAt = 0; },
     check(t) { const ok = (stats.goldOk || 0) > t.base; if (ok) tutGold = false; return ok; } },
-  { title: 'Ramps', text: `Little ${M('striped ramps')} turn up on the beat. Drive onto one and ${M('tap ' + kbd('Space'))} right as you reach its glowing lip to launch into an ${M('air trick')}. ${M('Land an air trick.')}`,
+  { title: 'Ramps', get text() { return `Little ${M('striped ramps')} turn up on the beat. Drive onto one and ${M('tap ' + SPACE())} right as you reach its glowing lip to launch into an ${M('air trick')}. ${M('Land an air trick.')}`; },
     focus: [{ find: () => { const k = kickers.find(k => k.state === 'pending' && k.s - carS > 25 && k.s - carS < 85); return tutSettled(k) && roadPoint(k.s, k.x, 0.6); }, zoom: { dist: 8, up: 3 },
-      title: 'Ramp', text: `Steer onto it, then ${M('tap ' + kbd('Space'))} as you reach the lip — it ${M('flashes white')} in the moment. Too early or too late and you just bump over it.` }],
+      title: 'Ramp', get text() { return `Steer onto it, then ${M('tap ' + SPACE())} as you reach the lip — it ${M('flashes white')} in the moment. Too early or too late and you just bump over it.`; } }],
     enter(t) { t.base = stats.airs || 0; t.next = 0; },
     check(t, now) {
       if (now > t.next && !kickers.some(k => k.state === 'pending' && k.s > carS)) { t.next = now + 2; addKicker(carS + Math.max(speed, 5) * 3.6, Math.max(-3.5, Math.min(3.5, lateral))); }
       return (stats.airs || 0) > t.base;
     } },
-  { title: 'Grind rails', text: `Red-and-white ${M('rails')} run along the lane lines. ${M('Tap ' + kbd('Space'))} as you reach the front of one and you grind it over the traffic by yourself — ${M('tap again')} to hop off. While grinding, ${kbd('←')} ${kbd('→')} ${kbd('↑')} ${kbd('↓')} ${M('switch tricks')}. ${M('Grind a rail to the end.')}`,
+  { title: 'Grind rails', get text() { return `Red-and-white ${M('rails')} run along the lane lines. ${M('Tap ' + SPACE())} as you reach the front of one and you grind it over the traffic by yourself — ${M('tap again')} to hop off. While grinding, ${padOn() ? 'the left stick or D-pad' : kbd('←') + ' ' + kbd('→') + ' ' + kbd('↑') + ' ' + kbd('↓')} ${M('switch tricks')}. ${M('Grind a rail to the end.')}`; },
     focus: [{ find: () => { const h = holds.find(h => h.state === 'pending' && !h.linked && h.s0 - carS > 25 && h.s0 - carS < 95); return tutSettled(h) && roadPoint(h.s0, h.x, RAIL_Y * 0.7); }, zoom: { dist: 8, up: 3 },
-      title: 'Grind rail', text: `Line up with it, ${M('tap ' + kbd('Space'))} as you reach the front — you hop up and grind on your own. Ride it to the end, or ${M('tap again')} to ollie off.` }],
+      title: 'Grind rail', get text() { return `Line up with it, ${M('tap ' + SPACE())} as you reach the front — you hop up and grind on your own. Ride it to the end, or ${M('tap again')} to ollie off.`; } }],
     enter(t) { t.base = stats.holds || 0; t.next = 0; },
     check(t, now) {
       if (now > t.next && !holds.some(h => h.state !== 'broken' && h.state !== 'done' && h.s1 > carS)) {
@@ -6314,9 +6323,9 @@ const TUT_STEPS = [
       }
       return (stats.holds || 0) > t.base;
     } },
-  { title: 'Transfers', text: `Some rails have a ${M('twin')} on the next line. The rail you're on ${M('ends just after its twin starts')} — ${M('tap ' + kbd('Space'))} to hop across or your grind ends with it. Time it so you're mid-hop as you reach a ${M('shard between the rails')} for a ${M('perfect transfer')} — the truck flips across. ${M('Transfer to the other rail.')}`,
+  { title: 'Transfers', get text() { return `Some rails have a ${M('twin')} on the next line. The rail you're on ${M('ends just after its twin starts')} — ${M('tap ' + SPACE())} to hop across or your grind ends with it. Time it so you're mid-hop as you reach a ${M('shard between the rails')} for a ${M('perfect transfer')} — the truck flips across. ${M('Transfer to the other rail.')}`; },
     focus: [{ find: () => { const h = holds.find(h => h.linked && h.state === 'pending' && h.s0 - carS > 30 && h.s0 - carS < 130); return tutSettled(h) && roadPoint(h.s0 + 6, h.x, RAIL_Y); }, zoom: { dist: 10, up: 3.5 },
-      title: 'Twin rail', text: `Grind the first rail. Once you're beside this one, ${M('guide lines')} slide in toward it — tap when they ${M('touch and flash')} to fly up through the shard — it hangs too high to reach from the road. Any other moment is a plain transfer.` }],
+      title: 'Twin rail', get text() { return `Grind the first rail. Once you're beside this one, ${M('guide lines')} slide in toward it — tap when they ${M('touch and flash')} to fly up through the shard — it hangs too high to reach from the road. Any other moment is a plain transfer.`; } }],
     enter(t) { t.base = stats.transfers || 0; t.next = 0; },
     check(t, now) {
       if (now > t.next && !holds.some(h => h.state !== 'broken' && h.state !== 'done' && h.s1 > carS)) {
@@ -6326,7 +6335,7 @@ const TUT_STEPS = [
       }
       return (stats.transfers || 0) > t.base;
     } },
-  { title: 'Skill chains', text: `Near misses, grinds, air tricks, drifts, transitions, clips and gold runs all build one ${M('skill chain')} under your truck. Each ${M('different skill')} in it adds ×0.5, catching shards keeps it alive, and it ${M('banks')} when you stop — the bigger the bank, the brighter your truck glows and the more the world joins in. Dashing into traffic to knock it flying counts too. Any hit loses it. ${M('Bank a chain with 2 different skills.')}`,
+  { title: 'Skill chains', get text() { return `Near misses, grinds, air tricks, drifts, transitions, clips and gold runs all build one ${M('skill chain')} under your truck. Each ${M('different skill')} in it adds ×0.5, catching shards keeps it alive, and it ${M('banks')} when you stop — the bigger the bank, the brighter your truck glows and the more the world joins in. Dashing into traffic to knock it flying counts too. Any hit loses it. ${M('Bank a chain with 2 different skills.')}`; },
     hud: ['chain'],
     enter(t) { t.base = stats.chains2 || 0; t.next = 0; t.alt = 0; },
     check(t, now) {
@@ -6337,12 +6346,12 @@ const TUT_STEPS = [
       }
       return (stats.chains2 || 0) > t.base;
     } },
-  { title: 'Repairs & yen', text: `The ${M('CAR')} bar drops when you hit traffic or scrape the wall, and a hurt truck is slower and harder to steer. Grab the ${M('wrench')} to repair and the ${M('banknote')} for yen.`,
+  { title: 'Repairs & yen', get text() { return `The ${M('CAR')} bar drops when you hit traffic or scrape the wall, and a hurt truck is slower and harder to steer. Grab the ${M('wrench')} to repair and the ${M('banknote')} for yen.`; },
     hud: ['clCar', 'yen'],
     focus: [{ find: () => { const n = noteAhead(n => n.type === 'health'); return tutSettled(n) && n.mesh.position; },
-      title: 'Wrench', text: `Drive through it to ${M('repair')} your truck — the CAR bar (bottom right) fills back up.` },
+      title: 'Wrench', get text() { return `Drive through it to ${M('repair')} your truck — the CAR bar (bottom right) fills back up.`; } },
             { find: () => { const n = noteAhead(n => n.type === 'yen'); return n && n.mesh.position; },
-      title: 'Banknote', text: `${M('Yen')} — your total is top left.` }],
+      title: 'Banknote', get text() { return `${M('Yen')} — your total is top left.`; } }],
     enter(t) { t.yen = stats.yen || 0; t.rep = stats.repairs || 0; t.next = 0; },
     check(t, now) {
       if (now > t.next) {
@@ -6353,35 +6362,35 @@ const TUT_STEPS = [
       }
       return (stats.yen || 0) > t.yen && (stats.repairs || 0) > t.rep;
     } },
-  { title: 'Traffic', text: `Cars ahead keep left, oncoming cars come down the right. ${M('Pass 2 cars')} without touching them — passing close is a ${M('near miss')}.`,
+  { title: 'Traffic', get text() { return `Cars ahead keep left, oncoming cars come down the right. ${M('Pass 2 cars')} without touching them — passing close is a ${M('near miss')}.`; },
     focus: [{ find: () => { const c = traffic.find(c => c.s - carS > 30 && c.s - carS < 90); return c && c.mesh.position.clone().setY(c.mesh.position.y + 1); }, zoom: { dist: 9, up: 3.2 },
-      title: 'Traffic', text: `Hitting a car costs ${M('health')}, speed and your ${M('multiplier')}. Slip past it instead — close is worth points.` }],
+      title: 'Traffic', get text() { return `Hitting a car costs ${M('health')}, speed and your ${M('multiplier')}. Slip past it instead — close is worth points.`; } }],
     enter(t) { t.base = stats.passed || 0; tutLayStation(); },   // the station starts coming up now, so there's no long wait after
     check(t) { if (traffic.length < 3) trafficTimer = Math.min(trafficTimer, 0.3); return (stats.passed || 0) - t.base >= 2; } },
-  { id: 'station', title: 'Gas stations', text: `Your ${M('FUEL')} bar drains faster the faster you drive — run dry and the run is over. Drive through the ${M('green lane')} under the station canopy to refuel.`,
+  { id: 'station', title: 'Gas stations', get text() { return `Your ${M('FUEL')} bar drains faster the faster you drive — run dry and the run is over. Drive through the ${M('green lane')} under the station canopy to refuel.`; },
     hud: ['clFuel'],
     focus: [{ find: () => { const st = nextStation(); return st && st.s - carS < 130 && st.s - carS > 40 ? roadPoint(st.s - 6, st.side * 5, 3) : null; }, zoom: { dist: 34, up: 1.5 },
-      title: 'Gas station', text: `Stay in the ${M('green-striped lane')} under the canopy until the FUEL bar is full. A blinking ${M('fuel lamp')} next to your truck means you're low.` }],
+      title: 'Gas station', get text() { return `Stay in the ${M('green-striped lane')} under the canopy until the FUEL bar is full. A blinking ${M('fuel lamp')} next to your truck means you're low.`; } }],
     enter(t) { if (tutStationsOn && tutStationS < carS + 60) tutStationsOn = false; tutLayStation(); tutLayTouge(); setFuel(30); },   // the station laid during Traffic is just ahead (or a fresh one if you already drove past it); the 峠 goes in out of sight beyond it
     check(t) { if (t.base === undefined) t.base = stats.fuelStops || 0; return fuel > 85 || ((stats.fuelStops || 0) > t.base && !refueling); } },   // full, or you've been through the lane
-  { id: 'touge', title: '峠 — drift zone', text: `A 峠 is for drifting: the speed locks to the beat and there are no shards. In a corner, ${M('hold ' + kbd('Space'))} to drift and steer your line with ${kbd('←')} ${kbd('→')}. ${M('Hold a drift for a couple of seconds.')}`,
+  { id: 'touge', title: '峠 — drift zone', get text() { return `A 峠 is for drifting: the speed locks to the beat and there are no shards. In a corner, ${M('hold ' + SPACE())} to drift and steer your line with ${padOn() ? 'the left stick' : kbd('←') + ' ' + kbd('→')}. ${M('Hold a drift for a couple of seconds.')}`; },
     focus: [{ find: () => { const f = flips.find(f => f - carS > 40 && f - carS < 120); return f !== undefined ? roadPoint(f, 0, 1) : null; }, zoom: { dist: 11, up: 4 },
-      title: 'Gate', text: `Gold gates mark where the road ${M('switches direction')}. Drift into the corner before it — next you'll learn to flick through the gate.` }],
+      title: 'Gate', get text() { return `Gold gates mark where the road ${M('switches direction')}. Drift into the corner before it — next you'll learn to flick through the gate.`; } }],
     check() { return drifting && driftT > 1.6; } },
-  { title: 'Transitions', text: `At each gate, ${M('let go of ' + kbd('Space') + ' and tap it again')} right as you cross — it lands on the beat. ${M('Green')} = perfect, ${M('orange')} = okay, ${M('red')} = bad. A bad one, or no tap at all, ${M('loses the drift')}. ${M('Do 2 transitions.')}`,
+  { title: 'Transitions', get text() { return `At each gate, ${M('let go of ' + SPACE() + ' and tap it again')} right as you cross — it lands on the beat. ${M('Green')} = perfect, ${M('orange')} = okay, ${M('red')} = bad. A bad one, or no tap at all, ${M('loses the drift')}. ${M('Do 2 transitions.')}`; },
     focus: [{ find: () => { const f = flips.find(f => f - carS > 45 && f - carS < 130); return f !== undefined ? roadPoint(f, 0, 1.2) : null; }, zoom: { dist: 11, up: 4 },
-      title: 'Transition gate', text: `The road ${M('switches direction')} here. Drifting into it, let go of ${kbd('Space')} and ${M('tap it again as you pass through the gate')} — on the beat. The gate flashes ${M('green')}, ${M('orange')} or ${M('red')} to grade you, and you flick into the next bend.` }],
+      title: 'Transition gate', get text() { return `The road ${M('switches direction')} here. Drifting into it, let go of ${SPACE()} and ${M('tap it again as you pass through the gate')} — on the beat. The gate flashes ${M('green')}, ${M('orange')} or ${M('red')} to grade you, and you flick into the next bend.`; } }],
     enter(t) { t.base = stats.transitions || 0; },
     check(t) { return (stats.transitions || 0) - t.base >= 2; } },
-  { title: 'Clipping points', text: `${M('Clipping points')} are the glowing curb blocks marked by tall CLIP banners. Slide over one ${M('while drifting')} — pink ones on the inside of the bend, blue on the outside.`,
+  { title: 'Clipping points', get text() { return `${M('Clipping points')} are the glowing curb blocks marked by tall CLIP banners. Slide over one ${M('while drifting')} — pink ones on the inside of the bend, blue on the outside.`; },
     focus: [{ find: () => { const c = clips.find(c => !c.judged && c.s - carS > 40 && c.s - carS < 110); return c ? roadPoint(c.s, c.x, 1.5) : null; }, zoom: { dist: 8, up: 3 },
-      title: 'Clipping point', text: `This glowing curb block, marked by the tall ${M('CLIP')} banner, is a clipping point. Slide your truck ${M('over it mid-drift')} — right on it is a ${M('great clip')}, close is a clip. Pink ones sit on the inside of the bend, blue on the outside.` }],
+      title: 'Clipping point', get text() { return `This glowing curb block, marked by the tall ${M('CLIP')} banner, is a clipping point. Slide your truck ${M('over it mid-drift')} — right on it is a ${M('great clip')}, close is a clip. Pink ones sit on the inside of the bend, blue on the outside.`; } }],
     enter(t) { t.base = stats.clips || 0; t.seen = clips.filter(c => c.judged).length; },
     check(t) { return (stats.clips || 0) - t.base >= 1 || clips.filter(c => c.judged).length - t.seen >= 5; } },
-  { title: '峠 boost', text: `Hit ${M('60% top grades')} across a 峠 — perfect transitions, great clips — for a ${M('×2 boost')}. Drifts, transitions and clips all feed your skill chain too. Press ${kbd('Enter')} when you're ready.`,
+  { title: '峠 boost', get text() { return `Hit ${M('60% top grades')} across a 峠 — perfect transitions, great clips — for a ${M('×2 boost')}. Drifts, transitions and clips all feed your skill chain too. Press ${padOn() ? kbd('B') : kbd('Enter')} when you're ready.`; },
     enter(t) { t.until = performance.now() / 1000 + 14; },
     check(t, now) { return now > t.until; } },
-  { title: 'You’re ready', text: `That's everything. Pick a ${M('level')}, try ${M('Drift Mode')}, or ${M('burn a CD')} of your own songs — they're analysed first so shards land on the beat.`,
+  { title: 'You’re ready', get text() { return `That's everything. Pick a ${M('level')}, try ${M('Drift Mode')}, or ${M('burn a CD')} of your own songs — they're analysed first so shards land on the beat.`; },
     enter(t) { t.until = performance.now() / 1000 + 6; },
     check(t, now) { if (now > t.until) { endGame(true); resetWorld(-1); } return false; } },
 ];
@@ -6399,7 +6408,7 @@ function tutCallout(target, title, html, zoom = {}) {
   tutCam.look.copy(target);
   tutCam.mode = 'in'; tutCam.t = 0;
   $('tutCallout').querySelector('.tcTitle').textContent = title;
-  $('tutCallout').querySelector('.tcText').innerHTML = html;
+  $('tutCallout').querySelector('.tcText').innerHTML = html; tutKeyHints();
   ['tutCallout', 'tutDim'].forEach(id => $(id).classList.add('on'));
 }
 function tutContinue() {
@@ -6529,7 +6538,7 @@ function tutNext() {
   tut.i++; tut.data = {}; tutGold = false; tut.doneAt = 0; tut.shownAt = performance.now() / 1000; tut.met = false;
   const S = TUT_STEPS[tut.i];
   $('tutStep').textContent = tut.i < TUT_STEPS.length - 1 ? `Step ${tut.i + 1} of ${TUT_STEPS.length - 1}` : 'Done';
-  $('tutTitle').textContent = S.title; $('tutText').innerHTML = S.text;
+  $('tutTitle').textContent = S.title; $('tutText').innerHTML = S.text; tutKeyHints();
   $('tut').className = 'on';
   tut.focusDone = 0; tutHud(S.hud);
   S.enter?.(tut.data);
@@ -6879,7 +6888,7 @@ function updateWorld(dt, now) {
   // in a drift zone: the camera comes in closer and the world drains to black and white (the road keeps its colour)
   zoneFx = lerp(zoneFx, soloActive() ? smooth(0.2, 0.8, twistAt(carS + 20)) : 0, 1 - Math.exp(-dt * 1.6));
   const zoneZoom = 1 - 0.22 * zoneFx;
-  // user camera: distance (zoom), yaw (orbit round the car, in road coordinates) and tilt (height)
+  // camera angle (C flips between the two CAM_VIEWS): distance (zoom), yaw (round the car, in road coordinates) and tilt (height)
   const back = (33 + camZoom * 11) * camUser.dist * zoneZoom, up = Math.max(3.2, (21 + camZoom * 6) * camUser.dist * camUser.tilt * zoneZoom);
   roadPoint(carS - back * Math.cos(camUser.yaw), lateral * 0.35 + back * Math.sin(camUser.yaw), up, _a);
   camPos.set(_a.x, lerp(camPos.y, _a.y, 1 - Math.exp(-dt * 3)), _a.z);
