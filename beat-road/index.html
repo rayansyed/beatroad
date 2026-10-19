@@ -29,7 +29,6 @@
   .choice:hover, .choice:focus-visible { border-color:var(--accent); transform:translateY(-1px); box-shadow:0 6px 18px rgba(60,40,20,.08); }
   .choice b { font-size:15px; font-weight:700; }
   .choice span { color:var(--muted); font-size:13px; }
-  .choice.spotify { border-left:4px solid var(--spot); }
   .choice.cdpick { border-left:4px solid var(--accent); }
   #cdPanel { margin-top:10px; padding:14px 16px; border-radius:14px; background:#fffdf8; border:1px solid var(--line); }
   #cdPanel .cdHead { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
@@ -88,6 +87,14 @@
   #fadeCut.on { opacity:1; }
   .level.night::after { content:''; position:absolute; right:-10px; bottom:-14px; width:90px; height:60px; background:repeating-linear-gradient(90deg, rgba(255,214,140,.55) 0 3px, transparent 3px 9px), repeating-linear-gradient(0deg, transparent 0 5px, rgba(26,24,56,.9) 5px 8px); opacity:.35; border-radius:4px; }
   .settings { margin-top:20px; display:grid; gap:12px; font-size:14px; }
+  .menuHead { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .menuHead .setBtn { padding:8px 14px; font-size:13px; flex:none; }
+  #settings { z-index:12; }                                   /* sits over the menu or the pause screen */
+  .setPanel { width:min(760px,100%); }
+  .setHead { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .setHead h2 { margin:0; }
+  .setTabs { margin-bottom:4px; }
+  #setOpts .settings { margin-top:12px; } #setCtl .keys { margin-top:14px; }
   .seg { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
   .seg span, .slider span { color:var(--muted); min-width:110px; }
   .seg button { all:unset; cursor:pointer; padding:6px 13px; border-radius:999px; background:var(--paper-2); font-weight:600; font-size:13px; }
@@ -232,7 +239,7 @@
      Slanted ink panels with halftone dots, chunky outlined numbers with a coloured drop, a starburst multiplier. Panels
      are skewed; their text is skewed back so it stays upright. */
   :root { --ink-k:#141218; --pop-o:#ff6a1a; --pop-y:#ffd23f; --pop-g:#86e34f; --pop-r:#ff3d3d; --pop-c:#35e0ff;
-    --halftone:radial-gradient(rgba(255,255,255,.13) 1.1px, transparent 1.6px) 0 0 / 6px 6px;
+    --halftone:repeating-linear-gradient(-55deg, rgba(255,255,255,.035) 0 2px, transparent 2px 13px);   /* faint diagonal speed lines (was halftone dots) */
     --outline:2px 2px 0 var(--ink-k), -2px 2px 0 var(--ink-k), 2px -2px 0 var(--ink-k), -2px -2px 0 var(--ink-k), 0 3px 0 var(--ink-k), 3px 0 0 var(--ink-k), -3px 0 0 var(--ink-k), 0 -3px 0 var(--ink-k); }
   #hud { text-shadow:var(--outline); font-family:var(--font); }
   @keyframes bump { 0% { scale:1.22; } 100% { scale:1; } }
@@ -371,7 +378,7 @@
   /* ================================================================ menus, pause, results, tutorial — same look as the HUD:
      ink panels with halftone dots, heavy lettering with a clean dark outline, chunky bordered cards and buttons with a
      hard offset shadow, and the HUD's pop colours (yellow · orange · cyan · pink) for accents */
-  .overlay { background:radial-gradient(rgba(255,255,255,.06) 1px, transparent 1.5px) 0 0 / 7px 7px, linear-gradient(180deg, rgba(14,12,18,.35), rgba(14,12,18,.72)); }
+  .overlay { background:radial-gradient(ellipse at center, rgba(14,12,18,.25) 30%, rgba(14,12,18,.78) 100%); }
   .panel { background:var(--halftone), linear-gradient(170deg, #1f1b26 0%, #141218 100%); color:#f4f0e8; border-radius:6px; border:3px solid #f4f0e8;
     box-shadow:8px 8px 0 var(--pop-o), 8px 8px 0 3px var(--ink-k), 0 30px 80px rgba(0,0,0,.45); }
   .panel h1, .panel h2 { color:#fff; font-weight:900; letter-spacing:.01em; -webkit-text-stroke:0.07em var(--ink-k); paint-order:stroke fill; text-transform:uppercase; }
@@ -383,7 +390,7 @@
   .sectionLbl small { color:#bdb6c8; }
   /* cards */
   .level, .choice, #cdPanel, .stat { border:3px solid var(--ink-k) !important; border-radius:6px !important; box-shadow:5px 5px 0 var(--ink-k); transition:transform .12s, box-shadow .12s; }
-  .level:hover, .level:focus-visible, .choice:hover, .choice:focus-visible { transform:translate(-2px,-2px); box-shadow:7px 7px 0 var(--ink-k), 0 0 0 3px var(--pop-y); }
+  .level:hover, .level:focus-visible, .choice:hover, .choice:focus-visible { transform:translate(-2px,-2px); box-shadow:7px 7px 0 var(--ink-k), 0 0 0 3px var(--ink-k), 0 0 0 6px #fff; }
   .level b { font-size:24px; font-weight:900; text-transform:uppercase; letter-spacing:.01em; color:#fff; -webkit-text-stroke:0.12em var(--ink-k); paint-order:stroke fill; }
   .level .lvNum { font-weight:900; opacity:1; color:#fff; -webkit-text-stroke:0.25em var(--ink-k); paint-order:stroke fill; letter-spacing:.24em; }
   .level .lvInfo { font-weight:600; opacity:.95; }
@@ -393,7 +400,6 @@
   .choice { background:#24202b; color:#f4f0e8; }
   .choice b { font-weight:900; text-transform:uppercase; letter-spacing:.03em; }
   .choice span { color:#bdb6c8; }
-  .choice.spotify { border-left:8px solid #1ed760 !important; }
   .choice.cdpick { border-left:8px solid var(--pop-o) !important; }
   #cdPanel { background:#24202b; color:#f4f0e8; }
   #cdPanel .cdHead b { font-weight:900; text-transform:uppercase; }
@@ -429,28 +435,35 @@
   #tutText mark, .tcText mark { background:rgba(255,210,63,.18); color:var(--pop-y); box-shadow:inset 0 -2px 0 var(--pop-o); }
   #tut.done { box-shadow:6px 6px 0 var(--pop-g), 6px 6px 0 3px var(--ink-k); }
   #fadeCut { background:#141218; }
-  .padFocus { outline:4px solid var(--pop-y) !important; outline-offset:3px; }
+  .padFocus { outline:none !important; box-shadow:0 0 0 3px var(--ink-k), 0 0 0 7px #fff !important; }
   #bossBar { position:absolute; top:64px; left:50%; transform:translateX(-50%); width:min(420px, 70vw); display:none; text-align:center; }
   #bossBar.on { display:block; }
   #bossBar .bbName { font-weight:900; font-size:14px; letter-spacing:.2em; text-transform:uppercase; color:#fff; text-shadow:var(--outline), 3px 3px 0 var(--pop-c); margin-bottom:5px; }
   #bossBar .bbTrack { height:16px; border:3px solid #f4f0e8; background:#1a1720; box-shadow:4px 4px 0 var(--ink-k); transform:skewX(-14deg); overflow:hidden; }
   #bossFill { height:100%; width:100%; background:repeating-linear-gradient(90deg, transparent 0 18%, var(--ink-k) 18% 20%), linear-gradient(90deg, #ff3d3d, #ff6a1a); transition:width .3s; }
   /* campaign */
-  .level.campaign { width:100%; box-sizing:border-box; min-height:150px; padding-right:min(46%, 260px); background:var(--halftone), linear-gradient(120deg, #141218 0%, #2b2633 40%, #3a6ee0 78%, #35e0ff 100%); color:#f4f0e8; }
+  .level.campaign { width:100%; box-sizing:border-box; min-height:150px; background:var(--halftone), linear-gradient(120deg, #141218 0%, #2b2633 40%, #3a6ee0 78%, #35e0ff 100%); color:#f4f0e8; }
   .level.campaign b { font-size:32px; }
   .campAgents { position:absolute; right:10px; bottom:-6px; width:min(44%, 250px); pointer-events:none; }
   .campAgents svg, .campAgentsRow svg { width:100%; height:auto; display:block; }
   .campPanel { width:min(640px,100%); }
   .campTop { display:flex; justify-content:space-between; align-items:center; gap:12px; }
   .campCount { font-weight:900; letter-spacing:.14em; text-transform:uppercase; color:var(--pop-y); font-size:12px; }
-  .campTitle { font-size:clamp(34px, 8vw, 52px); font-weight:900; text-transform:uppercase; color:#fff; -webkit-text-stroke:0.07em var(--ink-k); paint-order:stroke fill; text-shadow:5px 5px 0 var(--pop-c); margin:10px 0 6px; }
+  .campTitle { font-size:clamp(34px, 8vw, 52px); font-weight:900; text-transform:uppercase; color:#fff; -webkit-text-stroke:0.07em var(--ink-k); paint-order:stroke fill; text-shadow:0 4px 0 var(--ink-k); margin:10px 0 6px; }
   .campIntro p { font-size:14px; line-height:1.55; margin:8px 0; color:#e8e2d8; }
   .campIntro b { color:var(--pop-y); }
   .campAgentsRow { max-width:360px; margin:6px auto 2px; }
   .campList { display:grid; gap:10px; margin-top:14px; }
   .campList .level { min-height:0; }
+  .campList .level::before { content:''; position:absolute; inset:0; background:linear-gradient(90deg, rgba(14,12,18,.62) 0%, rgba(14,12,18,.35) 55%, rgba(14,12,18,0) 100%); pointer-events:none; }
+  .campList .level > * { position:relative; z-index:1; }
+  .campList .level { color:#fff6ee; }   /* light text on every chapter card (the scrim keeps it readable) */
+  .level .lvNum, .level .lvInfo, .level .best { text-shadow:0 1px 3px rgba(0,0,0,.7); }
   .campList .level .chStatus { font-size:12px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; margin-top:4px; }
   .campList .level .chStatus.ok { color:var(--pop-g); }
+  .level.soon { cursor:not-allowed; filter:grayscale(1) brightness(.5); }
+  .level.soon:hover, .level.soon:focus-visible { transform:none; box-shadow:none; }
+  .level.soon .lvNum { color:#ffd23f; opacity:1; }
   .campList .level.locked { cursor:not-allowed; filter:grayscale(1) brightness(.45); }
   .campList .level.locked:hover { transform:none; box-shadow:5px 5px 0 var(--ink-k); }
   .campList .level .lockTag { position:absolute; right:14px; top:14px; font-size:12px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; background:var(--ink-k); color:#f4f0e8; padding:4px 8px; border:2px solid #f4f0e8; }
@@ -525,20 +538,19 @@
 
 <div id="menu" class="overlay">
   <div class="panel">
-    <h1>Beat <em>Road</em></h1>
-    <p class="tag">A drive through Japan, laid out by music. Every beat drops a broken record on the road ahead — collect the pieces of the song. Steer through them, and around the traffic. Grab yen and repair wrenches too, and refuel by driving through gas stations. Your car's health bar drains when you hit things. Your kei truck hauls a turntable, a pair of speakers and a heap of records, blasting the track.</p>
+    <div class="menuHead"><h1>Beat <em>Road</em></h1><button class="btn ghost setBtn" id="btnSettings">⚙ Settings</button></div>
+    <p class="tag">Drive through Japan to the beat — collect the record shards your music drops on the road.</p>
     <button class="level tutorial" id="btnTutorial"><span class="lvNum">New here?</span><b>Tutorial</b><span class="lvInfo">Steering & dashing, record shards, gold runs, ramps, grind rails & transfers, skill chains, gas stations, 峠 drifting · ~7 min</span></button>
     <div class="sectionLbl">Campaign</div>
-    <button class="level campaign" id="btnCampaign"><span class="lvNum">Story · <span id="campProg">0 / 4 cities</span></span><b>Turn It Up</b><span class="lvInfo">OmniStream wants every song on earth behind a subscription. You're the last holdout with a truck full of vinyl. Take it city to city and make them listen.</span><span class="campAgents" id="menuAgents"></span></button>
+    <button class="level campaign" id="btnCampaign"><span class="lvNum">Story · <span id="campProg">0 / 4 cities</span></span><b>Turn It Up</b><span class="lvInfo">OmniStream wants every song on earth behind a subscription. You're the last holdout with a truck full of vinyl. Take it city to city and make them listen.</span></button>
     <div class="sectionLbl">Modes</div>
     <div class="levels">
-      <button class="level driftmode" id="btnDrift"><span class="lvNum">Endless</span><b>Drift Mode</b><span class="lvInfo">One 峠 that never ends, through Momiji Pass · lo-fi · drifts, transitions & clips — go until you quit or wreck</span><span class="best" id="bestDrift"></span></button>
+      <button class="level driftmode soon" id="btnDrift" disabled aria-disabled="true"><span class="lvNum">Coming soon</span><b>Drift Mode</b><span class="lvInfo">One 峠 that never ends, through Momiji Pass · lo-fi · drifts, transitions & clips — go until you quit or wreck</span><span class="best" id="bestDrift"></span></button>
       <button class="level rivals" id="btnRivals"><span class="lvNum">Battle</span><b>Rival Finale</b><span class="lvInfo">8 rivals (some armoured, some dropping mines), then the OmniStream gunship · dash to attack · Space to block, perfect block = parry</span><span class="best" id="bestRivals"></span></button>
-      <button class="level railpark" id="btnRails"><span class="lvNum">Practice</span><b>Rail Park</b><span class="lvInfo">Back-to-back grind rails, twins and chains · no traffic, no pickups, never runs out of gas — practise grinds, trick-outs and transfers</span></button>
+      <button class="level railpark soon" id="btnRails" disabled aria-disabled="true"><span class="lvNum">Coming soon</span><b>Rail Park</b><span class="lvInfo">Back-to-back grind rails, twins and chains · no traffic, no pickups, never runs out of gas — practise grinds, trick-outs and transfers</span></button>
     </div>
     <div class="sectionLbl">Or drive to your own music <small>(all regions)</small></div>
     <div class="choices">
-      <button id="btnSpotify" class="choice spotify"><b>Play with Spotify</b><span>Capture the Spotify web player tab (Chrome or Edge)</span></button>
       <label class="choice cdpick" tabindex="0"><input type="file" id="fileIn" accept="audio/*" multiple hidden><b>Burn a CD</b><span>Pick one or more songs (MP3, WAV, M4A, OGG, FLAC). Each is analyzed first so record shards land on its beats.</span></label>
     </div>
     <div id="cdPanel" class="hidden">
@@ -546,22 +558,6 @@
       <ol id="cdList"></ol>
       <div class="row"><button class="btn" id="btnPlayCD">Play CD</button><label class="btn ghost">Add songs<input type="file" id="fileAdd" accept="audio/*" multiple hidden></label><button class="btn ghost" id="btnClearCD">Clear</button></div>
     </div>
-    <div class="settings">
-      <div class="seg" id="gfxSeg"><span>Graphics</span><button data-q="low">Low</button><button data-q="medium">Medium</button><button data-q="high">High</button></div>
-      <div class="seg" id="diffSeg"><span>Shard density</span><button data-d="chill">Chill</button><button data-d="normal">Normal</button><button data-d="intense">Intense</button></div>
-      <label class="slider"><span>Audio offset</span><input type="range" id="offset" min="-250" max="250" step="10"><output id="offsetOut">0 ms</output></label>
-      <div class="hint">If shards reach you after the beat, slide right. If they arrive before it, slide left. Press <kbd>[</kbd> <kbd>]</kbd> to adjust while driving.</div>
-    </div>
-    <details>
-      <summary>How the Spotify mode works</summary>
-      <ol>
-        <li>Open <b>open.spotify.com</b> in another tab of this browser and start a song.</li>
-        <li>Click <b>Play with Spotify</b>, pick the Spotify tab, and make sure <b>"Also share tab audio"</b> is on.</li>
-        <li>The game mutes that tab and plays its audio here about 2 seconds late. That delay is what lets the road show beats before you hear them.</li>
-      </ol>
-      Spotify doesn't let web apps read the raw audio of a track, so the game captures the tab's audio instead. Skip songs in Spotify as usual. The drive continues until you stop sharing.
-    </details>
-    <div class="keys"><div class="kcol" id="keysKb"><div class="kh">Keyboard</div><div class="kr"><span class="kk"><kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd></span><span class="kv">Steer</span></div><div class="kr"><span class="kk">Double-tap <kbd>←</kbd> / <kbd>→</kbd></span><span class="kv">Dash sideways</span></div><div class="kr"><span class="kk"><kbd>↑</kbd> / <kbd>W</kbd></span><span class="kv">Dash forward</span></div><div class="kr"><span class="kk"><kbd>↑</kbd> <kbd>↓</kbd></span><span class="kv">Gas / brake (Drift Mode, Rival Finale)</span></div><div class="kr"><span class="kk">Hold <kbd>Space</kbd></span><span class="kv">Drift in corners</span></div><div class="kr"><span class="kk">Tap <kbd>Space</kbd></span><span class="kv">Transition, grind a rail, launch off a ramp, gold shards</span></div><div class="kr"><span class="kk"><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> on a rail</span><span class="kv">Switch grind tricks</span></div><div class="kr"><span class="kk"><kbd>C</kbd></span><span class="kv">Switch camera (default / zoomed out)</span></div><div class="kr"><span class="kk"><kbd>P</kbd> / <kbd>Esc</kbd></span><span class="kv">Pause</span></div><div class="kr"><span class="kk"><kbd>Enter</kbd></span><span class="kv">Skip a tutorial step</span></div></div><div class="kcol" id="keysPad"><div class="kh"><span id="padName">Xbox controller</span> <span class="kon">connected</span></div><div class="kr"><span class="kk">Left stick / D-pad</span><span class="kv">Steer</span></div><div class="kr"><span class="kk"><kbd data-pb="LB">LB</kbd> / <kbd data-pb="RB">RB</kbd></span><span class="kv">Dash sideways</span></div><div class="kr"><span class="kk"><kbd data-pb="LB">LB</kbd> + <kbd data-pb="RB">RB</kbd></span><span class="kv">Dash forward</span></div><div class="kr"><span class="kk"><kbd data-pb="RT">RT</kbd> / <kbd data-pb="LT">LT</kbd></span><span class="kv">Gas / brake (Drift Mode, Rival Finale)</span></div><div class="kr"><span class="kk">Hold <kbd data-pb="A">A</kbd></span><span class="kv">Drift in corners</span></div><div class="kr"><span class="kk">Tap <kbd data-pb="A">A</kbd></span><span class="kv">Transition, grind a rail, launch off a ramp, gold shards</span></div><div class="kr"><span class="kk">Stick / D-pad on a rail</span><span class="kv">Switch grind tricks</span></div><div class="kr"><span class="kk"><kbd data-pb="View">View</kbd></span><span class="kv">Switch camera</span></div><div class="kr"><span class="kk"><kbd data-pb="☰">☰</kbd></span><span class="kv">Pause</span></div><div class="kr"><span class="kk"><kbd data-pb="B">B</kbd></span><span class="kv">Skip a tutorial step</span></div><div class="kr"><span class="kk">D-pad + <kbd data-pb="A">A</kbd> / <kbd data-pb="B">B</kbd></span><span class="kv">Menus</span></div></div><div class="kcol" id="keysTouch"><div class="kh">Touch</div><div class="kr"><span class="kk">Hold left / right side</span><span class="kv">Steer</span></div><div class="kr"><span class="kk">Second finger</span><span class="kv">Drift</span></div><div class="kr"><span class="kk">Lift and re-tap</span><span class="kv">Transition</span></div></div><div class="knote">Dash into a car to knock it flying.</div></div>
     <div id="err"></div>
   </div>
 </div>
@@ -585,10 +581,28 @@
   </div>
 </div>
 
+<div id="settings" class="overlay hidden">
+  <div class="panel setPanel">
+    <div class="setHead"><h2>Settings</h2><button class="btn ghost" id="btnSetClose">Back</button></div>
+    <div class="seg setTabs" id="setTabs"><button data-tab="setOpts" class="on">Options</button><button data-tab="setCtl">Controls</button></div>
+    <div id="setOpts">
+    <div class="settings">
+      <div class="seg" id="gfxSeg"><span>Graphics</span><button data-q="low">Low</button><button data-q="medium">Medium</button><button data-q="high">High</button></div>
+      <div class="seg" id="diffSeg"><span>Shard density</span><button data-d="chill">Chill</button><button data-d="normal">Normal</button><button data-d="intense">Intense</button></div>
+      <label class="slider"><span>Audio offset</span><input type="range" id="offset" min="-250" max="250" step="10"><output id="offsetOut">0 ms</output></label>
+      <div class="hint">If shards reach you after the beat, slide right. If they arrive before it, slide left. Press <kbd>[</kbd> <kbd>]</kbd> to adjust while driving.</div>
+    </div>
+    </div>
+    <div id="setCtl" class="hidden">
+    <div class="keys"><div class="kcol" id="keysKb"><div class="kh">Keyboard</div><div class="kr"><span class="kk"><kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd></span><span class="kv">Steer</span></div><div class="kr"><span class="kk">Double-tap <kbd>←</kbd> / <kbd>→</kbd></span><span class="kv">Dash sideways</span></div><div class="kr"><span class="kk"><kbd>↑</kbd> / <kbd>W</kbd></span><span class="kv">Dash forward</span></div><div class="kr"><span class="kk"><kbd>↑</kbd> <kbd>↓</kbd></span><span class="kv">Gas / brake (Drift Mode, Rival Finale)</span></div><div class="kr"><span class="kk">Hold <kbd>Space</kbd></span><span class="kv">Drift in corners</span></div><div class="kr"><span class="kk">Tap <kbd>Space</kbd></span><span class="kv">Transition, grind a rail, launch off a ramp, gold shards</span></div><div class="kr"><span class="kk"><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> on a rail</span><span class="kv">Switch grind tricks</span></div><div class="kr"><span class="kk"><kbd>C</kbd></span><span class="kv">Switch camera (default / zoomed out)</span></div><div class="kr"><span class="kk"><kbd>P</kbd> / <kbd>Esc</kbd></span><span class="kv">Pause</span></div><div class="kr"><span class="kk"><kbd>Enter</kbd></span><span class="kv">Skip a tutorial step</span></div></div><div class="kcol" id="keysPad"><div class="kh"><span id="padName">Xbox controller</span> <span class="kon">connected</span></div><div class="kr"><span class="kk">Left stick / D-pad</span><span class="kv">Steer</span></div><div class="kr"><span class="kk"><kbd data-pb="LB">LB</kbd> / <kbd data-pb="RB">RB</kbd></span><span class="kv">Dash sideways</span></div><div class="kr"><span class="kk"><kbd data-pb="LB">LB</kbd> + <kbd data-pb="RB">RB</kbd></span><span class="kv">Dash forward</span></div><div class="kr"><span class="kk"><kbd data-pb="RT">RT</kbd> / <kbd data-pb="LT">LT</kbd></span><span class="kv">Gas / brake (Drift Mode, Rival Finale)</span></div><div class="kr"><span class="kk">Hold <kbd data-pb="A">A</kbd></span><span class="kv">Drift in corners</span></div><div class="kr"><span class="kk">Tap <kbd data-pb="A">A</kbd></span><span class="kv">Transition, grind a rail, launch off a ramp, gold shards</span></div><div class="kr"><span class="kk">Stick / D-pad on a rail</span><span class="kv">Switch grind tricks</span></div><div class="kr"><span class="kk"><kbd data-pb="View">View</kbd></span><span class="kv">Switch camera</span></div><div class="kr"><span class="kk"><kbd data-pb="☰">☰</kbd></span><span class="kv">Pause</span></div><div class="kr"><span class="kk"><kbd data-pb="B">B</kbd></span><span class="kv">Skip a tutorial step</span></div><div class="kr"><span class="kk">D-pad + <kbd data-pb="A">A</kbd> / <kbd data-pb="B">B</kbd></span><span class="kv">Menus</span></div></div><div class="kcol" id="keysTouch"><div class="kh">Touch</div><div class="kr"><span class="kk">Hold left / right side</span><span class="kv">Steer</span></div><div class="kr"><span class="kk">Second finger</span><span class="kv">Drift</span></div><div class="kr"><span class="kk">Lift and re-tap</span><span class="kv">Transition</span></div></div><div class="knote">Dash into a car to knock it flying.</div></div>
+    </div>
+  </div>
+</div>
+
 <div id="pause" class="overlay hidden">
   <div class="panel" style="width:min(340px,100%);text-align:center">
     <h2>Paused</h2>
-    <div class="row" style="justify-content:center"><button class="btn" id="btnResume">Resume</button><button class="btn ghost" id="btnQuit">Quit</button></div>
+    <div class="row" style="justify-content:center"><button class="btn" id="btnResume">Resume</button><button class="btn ghost" id="btnPauseSet">Settings</button><button class="btn ghost" id="btnQuit">Quit</button></div>
   </div>
 </div>
 
@@ -4326,7 +4340,7 @@ function endGame(toMenu = false, reason = false) {   // reason: true / 'wreck' =
 function setPaused(p) {
   if (!run) return;
   if (p && state === 'playing') { state = 'paused'; ctx.suspend(); $('pause').classList.remove('hidden'); }
-  else if (!p && state === 'paused') { state = 'playing'; ctx.resume(); $('pause').classList.add('hidden'); }
+  else if (!p && state === 'paused') { state = 'playing'; ctx.resume(); $('pause').classList.add('hidden'); $('settings').classList.add('hidden'); setFrom = null; }
 }
 
 function flash(text, color = '') {
@@ -5729,7 +5743,7 @@ addEventListener('keydown', e => {
   if (side) { sideDown(side, e.repeat); e.preventDefault(); return; }
   if (e.code === 'Space') { actionDown(e.repeat); e.preventDefault(); return; }
   if (e.repeat) return;
-  if (['Escape', 'p', 'P'].includes(e.key)) setPaused(state === 'playing');
+  if (['Escape', 'p', 'P'].includes(e.key)) { if (e.key === 'Escape' && closeSettings()) return; if (!$('settings').classList.contains('hidden')) return; setPaused(state === 'playing'); }
   else if (e.key === 'Enter' && run && run.kind === 'tutorial') tutSkip();
   else if (e.key === '[' && run) nudgeOffset(-10);
   else if (e.key === ']' && run) nudgeOffset(10);
@@ -5791,8 +5805,9 @@ function pollPad(dt) {
 }
 // menus with the controller: move a highlight over whatever buttons are on screen, A presses, B goes back
 function padMenu(b, down, ly, dt) {
-  const layer = ['pause', 'results', 'campaign', 'menu'].map($).find(el => el && !el.classList.contains('hidden'));
+  const layer = ['settings', 'pause', 'results', 'campaign', 'menu'].map($).find(el => el && !el.classList.contains('hidden'));
   if (!layer) return;
+  if (layer.id === 'settings' && (down(PAD.B) || down(PAD.MENU))) { closeSettings(); return; }
   if (state === 'paused' && (down(PAD.MENU) || down(PAD.B))) { setPaused(false); return; }
   const items = [...layer.querySelectorAll('button, label.choice, input[type=range]')].filter(el => el.offsetParent && !el.classList.contains('hidden') && !el.classList.contains('locked') && !el.disabled);
   if (!items.length) return;
@@ -5844,6 +5859,23 @@ for (const ev of ['pointerup', 'pointercancel']) renderer.domElement.addEventLis
   if (held.touches === 0) held.pointer = 0;
 });
 $('btnResume').onclick = () => setPaused(false);
+let setFrom = null;
+function openSettings(from) {
+  setFrom = from; $(from).classList.add('hidden'); $('settings').classList.remove('hidden');
+  pad.focus = null;
+}
+function closeSettings() {
+  if ($('settings').classList.contains('hidden')) return false;
+  $('settings').classList.add('hidden');
+  if (setFrom && (setFrom !== 'pause' || state === 'paused')) $(setFrom).classList.remove('hidden');
+  setFrom = null; pad.focus = null; return true;
+}
+$('btnSettings').onclick = () => openSettings('menu');
+$('btnPauseSet').onclick = () => openSettings('pause');
+$('btnSetClose').onclick = () => closeSettings();
+for (const b of document.querySelectorAll('#setTabs button')) b.onclick = () => {
+  for (const o of document.querySelectorAll('#setTabs button')) { o.classList.toggle('on', o === b); $(o.dataset.tab).classList.toggle('hidden', o !== b); }
+};
 $('btnQuit').onclick = () => { const drift = run && run.kind === 'drift'; setPaused(false); endGame(!drift); if (!drift && levelBiome !== -1) resetWorld(-1); };   // drift mode: quitting is how a run ends, so show results
 $('btnMenu').onclick = () => {
   parked = false; $('results').classList.add('hidden'); $('menu').classList.remove('hidden');
@@ -5937,7 +5969,6 @@ async function startChapter(i) {
   if (run) { run.campaign = i; run.label = `Chapter ${i + 1} · ${CAMPAIGN[i].city}`; $('srcLabel').textContent = run.label; }
   else openCampaign();
 }
-$('menuAgents').innerHTML = agentSquad(3);
 $('introAgents').innerHTML = agentSquad(5);
 $('btnCampaign').onclick = openCampaign;
 $('btnCampBack').onclick = () => { $('campaign').classList.add('hidden'); $('menu').classList.remove('hidden'); };
@@ -6006,34 +6037,9 @@ syncSettingsUi();
 
 document.querySelectorAll('.level[data-level]').forEach(b => b.onclick = () => startLevel(+b.dataset.level));
 $('btnTutorial').onclick = () => startTutorial();
-$('btnDrift').onclick = () => startDriftMode();
-$('btnRails').onclick = () => startRailPark();
+// Drift Mode and Rail Park are switched off for now ("coming soon" in the menu); startDriftMode / startRailPark still work
 $('btnRivals').onclick = async () => { await startLevel(RIVAL_BASE); if (run && !run.finale) { run.rivalMode = true; run.label = 'Rival Finale'; $('srcLabel').textContent = 'Rival Finale'; beginFinale(); } };   // a mode of its own (not part of the levels for now)
 showBests();
-$('btnSpotify').onclick = async () => {
-  showErr('');
-  if (!navigator.mediaDevices?.getDisplayMedia) { showErr('This browser cannot capture tab audio. Use desktop Chrome or Edge.'); return; }
-  let stream;
-  try {
-    stream = await navigator.mediaDevices.getDisplayMedia({
-      video: { displaySurface: 'browser' },
-      audio: { suppressLocalAudioPlayback: true, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
-      systemAudio: 'include', selfBrowserSurface: 'exclude', preferCurrentTab: false,
-    });
-  } catch (err) { showErr(err.name === 'NotAllowedError' ? 'Sharing was cancelled.' : 'Capture failed: ' + err.message); return; }
-  const audio = stream.getAudioTracks();
-  if (!audio.length) {
-    stream.getTracks().forEach(t => t.stop());
-    showErr('No audio was shared. Pick the Spotify tab again and turn on "Also share tab audio".');
-    return;
-  }
-  ensureAudio();
-  const src = ctx.createMediaStreamSource(new MediaStream(audio));
-  const label = stream.getVideoTracks()[0]?.label || audio[0].label || 'Captured tab';
-  startGame('capture', src, 'Live · ' + label, { stop: () => stream.getTracks().forEach(t => t.stop()) });
-  const id = run.id;
-  audio[0].addEventListener('ended', () => { if (run && run.id === id) endGame(); });
-};
 
 // ---------------------------------------------------------------- offline song analysis
 // Runs over the whole decoded song before you drive: spectral flux per band → onset envelope →
