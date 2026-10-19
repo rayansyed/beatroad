@@ -100,8 +100,6 @@
   #hud.splitL { right:50%; } #hud.splitR { left:50%; }
   body.split #hud #cluster, body.split #hud .hud-right, body.split #hud #yen { zoom:.72; }   /* half a screen each: smaller gauges */
   body.split #hud #chain, body.split #hud #tagPop { zoom:.78; }                    /* no stations in split screen, so no fuel to watch */
-  #viewDivider { display:none; position:fixed; top:0; bottom:0; left:50%; width:4px; margin-left:-2px; background:#141218; box-shadow:0 0 0 1px rgba(255,255,255,.25); z-index:5; pointer-events:none; }
-  body.split.viewSplit #viewDivider { display:block; }
   .menuHead { display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .menuHead .setBtn { padding:8px 14px; font-size:13px; flex:none; }
   #settings { z-index:12; }                                   /* sits over the menu or the pause screen */
@@ -642,8 +640,6 @@
   </div>
 </div>
 
-<div id="viewDivider"></div>
-
 <div id="pause" class="overlay hidden">
   <div class="panel" style="width:min(340px,100%);text-align:center">
     <h2>Paused</h2>
@@ -1104,10 +1100,11 @@ composer.addPass(new OutputPass());
 const grade = new ShaderPass({
   uniforms: { tDiffuse: { value: null }, time: { value: 0 }, vig: { value: 0.9 }, warm: { value: new THREE.Color(1.03, 1.0, 0.95) },
               sat: { value: 1.45 }, contrast: { value: 1.18 }, tone: { value: 0.22 }, halftone: { value: 0.5 }, lines: { value: 0 }, res: { value: new THREE.Vector2(1, 1) },
-              fxFlash: { value: 0 }, fxPunch: { value: 0 }, fxDesat: { value: 0 }, fxTint: { value: new THREE.Color() }, trip: { value: 0 }, kick: { value: 0 }, tmode: { value: 0 } },
+              fxFlash: { value: 0 }, fxPunch: { value: 0 }, fxDesat: { value: 0 }, fxTint: { value: new THREE.Color() }, trip: { value: 0 }, kick: { value: 0 }, tmode: { value: 0 },
+              splitN: { value: new THREE.Vector3() }, splitOn: { value: 0 }, splitW: { value: 0 }, splitTop: { value: 0 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
   fragmentShader: `
-    uniform sampler2D tDiffuse; uniform float time, vig, fxFlash, fxPunch, fxDesat, sat, contrast, tone, halftone, lines, trip, kick, tmode; uniform vec2 res; uniform vec3 warm, fxTint; varying vec2 vUv;
+    uniform sampler2D tDiffuse; uniform float time, vig, fxFlash, fxPunch, fxDesat, sat, contrast, tone, halftone, lines, trip, kick, tmode, splitOn, splitW, splitTop; uniform vec3 splitN; uniform vec2 res; uniform vec3 warm, fxTint; varying vec2 vUv;
     float h1(float x){ return fract(sin(x * 91.17) * 43758.5453); }
     // rotate a colour's hue round the grey axis
     vec3 hueRot(vec3 col, float a){ const vec3 k = vec3(0.57735); float cs = cos(a); return col * cs + cross(k, col) * sin(a) + k * dot(k, col) * (1.0 - cs); }
@@ -1115,6 +1112,9 @@ const grade = new ShaderPass({
     // thermal-camera ramp: deep blue → violet → red → orange → white-hot
     vec3 heat(float t){ t = clamp(t, 0.0, 1.0); return clamp(vec3(smoothstep(0.15, 0.55, t) + 0.35 * smoothstep(0.0, 0.3, t) * (1.0 - smoothstep(0.3, 0.5, t)), smoothstep(0.45, 0.9, t), 0.55 * (1.0 - smoothstep(0.25, 0.5, t)) + smoothstep(0.85, 1.0, t) + 0.25), 0.0, 1.0); }
     void main(){
+      // 2 Player split view: this pass only keeps its own side of the split line (the road's median, projected)
+      float sd = dot(splitN.xy, gl_FragCoord.xy) + splitN.z;
+      if (splitOn > 0.5 && sd > splitW) discard;
       vec2 d = vUv - 0.5;
       // the trip (skill chain groove): the picture starts to breathe — a slow liquid wobble, stronger toward the edges,
       // that swells on the kick
@@ -1230,6 +1230,7 @@ const grade = new ShaderPass({
       }
       c.rgb *= 1.0 - dot(d, d) * vig * 0.6;
       c.rgb *= warm;
+      if (splitOn > 0.5 && splitW > 0.0) c.rgb = mix(c.rgb, vec3(0.08, 0.07, 0.1), (1.0 - smoothstep(splitW * 0.35, splitW, abs(sd))) * (1.0 - smoothstep(splitTop - 40.0, splitTop, gl_FragCoord.y)));   // the seam, only along the road
       gl_FragColor = c;
     }`
 });
@@ -7407,27 +7408,18 @@ function makeHud2() {
 const camShared = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.5, 2600);
 const shCam = { pos: new THREE.Vector3(), look: new THREE.Vector3(), ready: false };
 // when the trucks drift too far apart for one camera (the one in front would be looking at the edge of the frame, with
-// no view of what's coming), the screen splits down the middle — each player gets their own chase cam — and it joins
-// back into the shared view once they're close again (hysteresis, so it doesn't flicker at the threshold)
-// The change is animated (splitK 0 → 1 over SPLIT_TIME): each half starts as exactly its half of the shared picture
-// (the shared camera with a view offset), then its camera glides into that player's own chase cam while the divider
-// fades in — and the reverse to join. No cut.
-const SPLIT_AT = 55, JOIN_AT = 32, SPLIT_TIME = 0.8;
+// no view of what's coming), the view splits — along the road's own median. Both players' cameras are the shared
+// camera slid along the road to their own truck (same height, angle and lateral aim), so the median sits on the same
+// line on screen in both pictures: P2's picture is drawn, then P1's over it on the left of that projected median, with
+// a thin seam. When it starts both cameras ARE the shared camera (no seam at all) and then glide apart along the road
+// over SPLIT_TIME — and back again to join, with hysteresis so it doesn't flicker at the threshold.
+const SPLIT_AT = 55, JOIN_AT = 32, SPLIT_TIME = 0.9;
 let viewSplit = false, splitK = 0;
-const halfCams = [new THREE.PerspectiveCamera(), new THREE.PerspectiveCamera()], camSharedOff = new THREE.PerspectiveCamera();
-const _hq = new THREE.Quaternion();
+const viewCams = [new THREE.PerspectiveCamera(), new THREE.PerspectiveCamera()], _vq = new THREE.Quaternion(), _vo = new THREE.PerspectiveCamera();   // (a camera, so lookAt points its -Z at the target)
+const _m1 = new THREE.Vector3(), _m2 = new THREE.Vector3(), _mc = new THREE.Vector3();
 function splitLayout() {
   if (!SPLIT || !PL || !innerWidth || !innerHeight) return;   // (a hidden / minimised window has no size: wait for the next resize)
-  const half = Math.floor(innerWidth / 2), pr = renderer.getPixelRatio();
-  if (splitK > 0) {
-    composer.setSize(half, innerHeight); grade.uniforms.res.value.set(half * pr, innerHeight * pr);
-    for (const p of PL) { p.camera.aspect = half / innerHeight; p.camera.updateProjectionMatrix(); }
-  } else {
-    composer.setSize(innerWidth, innerHeight); grade.uniforms.res.value.set(innerWidth * pr, innerHeight * pr);
-  }
-  attachDepth();
   camShared.aspect = innerWidth / innerHeight; camShared.updateProjectionMatrix();
-  document.body.classList.toggle('viewSplit', splitK > 0);
 }
 // Catch-up: a player who's dropped more than CATCHUP_AT metres behind for a moment (a wreck, a spin, a crash into a
 // barrier) is put back on the road ~20 m behind the leader, on their own highway, at the leader's speed — with a flash,
@@ -7456,39 +7448,58 @@ function splitRespawn(p) {
 function updateViewSplit(dt) {
   const ds = Math.abs(PL[0].carS - PL[1].carS);
   viewSplit = viewSplit ? ds > JOIN_AT : ds > SPLIT_AT;
-  const was = splitK > 0;
   splitK = THREE.MathUtils.clamp(splitK + (viewSplit ? 1 : -1) * dt / SPLIT_TIME, 0, 1);
-  if ((splitK > 0) !== was) splitLayout();                            // the render size changes only at the start / end
-  $('viewDivider').style.opacity = THREE.MathUtils.smoothstep(splitK, 0.15, 0.85).toFixed(3);
 }
-// the camera for one half, partway (e) between "its half of the shared view" and "that player's chase cam"
-function halfCam(p, i, e) {
-  const half = Math.floor(innerWidth / 2), x = p.side < 0 ? 0 : innerWidth - half, hc = halfCams[i];
-  camSharedOff.copy(camShared); camSharedOff.aspect = innerWidth / innerHeight;
-  camSharedOff.setViewOffset(innerWidth, innerHeight, x, 0, half, innerHeight); camSharedOff.updateProjectionMatrix();
-  hc.near = camShared.near; hc.far = camShared.far;
-  hc.position.lerpVectors(camShared.position, p.camera.position, e);
-  hc.quaternion.copy(camShared.quaternion).slerp(_hq.copy(p.camera.quaternion), e);
-  hc.updateMatrixWorld(true);
-  const A = camSharedOff.projectionMatrix.elements, B = p.camera.projectionMatrix.elements, C = hc.projectionMatrix.elements;
-  for (let k = 0; k < 16; k++) C[k] = A[k] + (B[k] - A[k]) * e;
-  hc.projectionMatrixInverse.copy(hc.projectionMatrix).invert();
-  return hc;
+// player i's camera, partway (e) from the shared camera to "the shared framing, slid along the road to my truck"
+function viewCam(p, i, e) {
+  const ps = PSIDE; PSIDE = 0;
+  const vc = viewCams[i], narrow = Math.max(1, 1.1 / (innerHeight > 0 ? innerWidth / innerHeight : 1));
+  const sl = shCam.lat || 16, back = (34 + sl * 0.9) * camUser.dist * narrow, up = (20 + sl * 0.45) * camUser.dist * camUser.tilt * narrow;
+  roadPoint(p.carS, shCam.xMid || 0, 0, _mc);
+  roadPoint(p.carS + 1, 0, 0, _m2).sub(roadPoint(p.carS, 0, 0, _m1)).setY(0).normalize();
+  _vo.position.copy(_mc).addScaledVector(_m2, -back); _vo.position.y = _mc.y + up;
+  _vo.lookAt(_m1.copy(_m2).multiplyScalar(14 + sl * 0.25).add(_mc));
+  vc.fov = camShared.fov; vc.aspect = camShared.aspect; vc.near = camShared.near; vc.far = camShared.far; vc.updateProjectionMatrix();
+  vc.position.lerpVectors(camShared.position, _vo.position, e);
+  vc.quaternion.copy(camShared.quaternion).slerp(_vq.copy(_vo.quaternion), e);
+  vc.updateMatrixWorld(true);
+  PSIDE = ps;
+  return vc;
 }
-// split view: each half drawn from that player's own chase cam, with their own flash / drift-zone look and shadows
-function renderHalves() {
-  const half = Math.floor(innerWidth / 2), e = THREE.MathUtils.smoothstep(splitK, 0, 1);
-  for (const [i, p] of PL.entries()) {
-    const x = p.side < 0 ? 0 : innerWidth - half, cam = halfCam(p, i, e);
+// the split line: the median a little ahead of P1's truck, projected with P1's camera, as n·px + c (px in drawing-
+// buffer pixels), oriented so P1's side is negative
+function splitLineFor(cam, p) {
+  const ps = PSIDE; PSIDE = 0;
+  const W = renderer.domElement.width, H = renderer.domElement.height;
+  roadPoint(p.carS + 6, 0, 0, _m1).project(cam); roadPoint(p.carS + 70, 0, 0, _m2).project(cam);
+  roadPoint(p.carS, -HW, 0, _mc).project(cam);
+  PSIDE = ps;
+  let x1 = (_m1.x * 0.5 + 0.5) * W, y1 = (_m1.y * 0.5 + 0.5) * H, x2 = (_m2.x * 0.5 + 0.5) * W, y2 = (_m2.y * 0.5 + 0.5) * H;
+  if (!(Math.abs(_m1.z) < 1 && Math.abs(_m2.z) < 1) || Math.hypot(x2 - x1, y2 - y1) < 4) { x1 = x2 = W / 2; y1 = 0; y2 = H; }   // fallback: straight down the middle
+  let nx = y2 - y1, ny = -(x2 - x1); const l = Math.hypot(nx, ny); nx /= l; ny /= l;
+  let c = -(nx * x1 + ny * y1);
+  if (nx * (_mc.x * 0.5 + 0.5) * W + ny * (_mc.y * 0.5 + 0.5) * H + c > 0) { nx = -nx; ny = -ny; c = -c; }
+  grade.uniforms.splitN.value.set(nx, ny, c); grade.uniforms.splitTop.value = Math.max(y1, y2);
+}
+// split view: P2's picture full screen, then P1's on its side of the median line (each with their own flash /
+// drift-zone look / shadows)
+function renderSplit() {
+  const e = THREE.MathUtils.smoothstep(splitK, 0, 1), cams = PL.map((p, i) => viewCam(p, i, e));
+  splitLineFor(cams[0], PL[0]);
+  renderer.setScissorTest(false); renderer.setViewport(0, 0, innerWidth, innerHeight);
+  for (const i of [1, 0]) {
+    const p = PL[i], cam = cams[i];
     grade.uniforms.fxFlash.value = p.fxOut.flash; grade.uniforms.fxTint.value.copy(p.fxOut.tint); grade.uniforms.fxPunch.value = p.fxOut.punch; grade.uniforms.fxDesat.value = p.fxOut.desat;
     sunLight.target.position.copy(p.car.position); sunLight.position.copy(p.car.position).addScaledVector(lightDir, 200);
     camera = cam; composer.passes[0].camera = cam;
-    renderer.setScissorTest(true); renderer.setViewport(x, 0, half, innerHeight); renderer.setScissor(x, 0, half, innerHeight);
+    grade.uniforms.splitOn.value = i === 0 ? 1 : 0; grade.uniforms.splitW.value = i === 0 ? 2.2 * renderer.getPixelRatio() * e : 0;
     ink.uniforms.mono.value = p.zoneFx;
     if (p.zoneFx > 0.001) renderRoadMask();
+    renderer.autoClear = i === 1;                                     // P1's pass draws over P2's picture: don't clear the screen first
     composer.render();
   }
-  renderer.setScissorTest(false);
+  renderer.autoClear = true;
+  grade.uniforms.splitOn.value = 0; grade.uniforms.splitW.value = 0;
 }
 // behind the midpoint of the two trucks, pulled back and up far enough to fit both highways (more on a narrow window,
 // and more the further apart the trucks are); C still switches between the default and the zoomed-out distance
@@ -7497,6 +7508,7 @@ function sharedCamera(dt) {
   const xa = a.lateral - hwOff(a.carS), xb = b.lateral + hwOff(b.carS), sMid = (a.carS + b.carS) / 2, xMid = (xa + xb) / 2;
   const spread = Math.abs(xb - xa) + Math.abs(a.carS - b.carS) * 0.5, narrow = Math.max(1, 1.1 / (innerHeight > 0 ? innerWidth / innerHeight : 1));
   const back = (34 + spread * 0.9) * camUser.dist * narrow, up = (20 + spread * 0.45) * camUser.dist * camUser.tilt * narrow;
+  shCam.lat = Math.abs(xb - xa); shCam.xMid = xMid;
   // aim at the midpoint of the two trucks themselves (on a tight bend that's well off the road's centre line), from
   // behind along the road's heading there
   _f.copy(a.car.position).add(b.car.position).multiplyScalar(0.5);
@@ -7525,8 +7537,8 @@ function renderShared() {
 // each player's floating HUD bits (tag over the truck, chain card) sit over their truck, inside their side's HUD
 function sharedHud(p) {
   const get = id => (p.hudMap && p.hudMap.get(id)) || document.getElementById(id), half = Math.floor(innerWidth / 2), left = p.side < 0 ? 0 : innerWidth - half;
-  tagV.copy(p.car.position); tagV.y -= 0.2; tagV.project(splitK > 0 ? halfCams[PL.indexOf(p)] : camShared);
-  const tagX = splitK > 0 ? (tagV.x * 0.5 + 0.5) * half : (tagV.x * 0.5 + 0.5) * innerWidth - left, tagY = (-tagV.y * 0.5 + 0.5) * innerHeight + 26;
+  tagV.copy(p.car.position); tagV.y -= 0.2; tagV.project(splitK > 0 ? viewCams[PL.indexOf(p)] : camShared);
+  const tagX = (tagV.x * 0.5 + 0.5) * innerWidth - left, tagY = (-tagV.y * 0.5 + 0.5) * innerHeight + 26;
   get('carTag').style.transform = `translate(${tagX}px, ${tagY}px) translate(-50%, 0)`;
   const card = get('chain'), w = card.offsetWidth, h = card.offsetHeight;
   const x = Math.max(16 + w / 2, Math.min(half - 16 - w / 2, tagX)), bottom = innerHeight - 150;
@@ -7535,7 +7547,7 @@ function sharedHud(p) {
 }
 function splitFrame(t, dtReal) {
   const dt = dtReal, playing = state === 'playing' || state === 'wrecking';
-  if (state === 'paused') { pollPad(dtReal); if (splitK > 0) renderHalves(); else renderShared(); return; }
+  if (state === 'paused') { pollPad(dtReal); if (splitK > 0) renderSplit(); else renderShared(); return; }
   let now = t / 1000;
   if (playing) { now = ctx.currentTime; analyze(now); consumeFrames(now, dt); }
   dust.update(dt); sparkles.update(dt); smoke.update(dt); petalFx.update(dt);
@@ -7557,9 +7569,9 @@ function splitFrame(t, dtReal) {
   if (playing) checkCatchUp(dt);
   updateViewSplit(dt);
   sharedCamera(dt);
-  if (splitK > 0) PL.forEach((p, i) => halfCam(p, i, THREE.MathUtils.smoothstep(splitK, 0, 1)));   // (the HUD tags follow these)
+  if (splitK > 0) PL.forEach((p, i) => viewCam(p, i, THREE.MathUtils.smoothstep(splitK, 0, 1)));   // (the HUD tags follow these)
   if (run) for (const p of PL) sharedHud(p);
-  if (splitK > 0) renderHalves(); else renderShared();
+  if (splitK > 0) renderSplit(); else renderShared();
   if (playing) splitTandem(dt);
   if (playing && run && ctx.currentTime - run.start > run.duration + LOOKAHEAD + 0.5) endSplit();
 }
