@@ -3616,25 +3616,57 @@ function goldBonus(label) {
 }
 // seconds of song left after a beat at analysis time t is heard (the tutorial's song loops, so it never runs out)
 const goldRoom = t => !run || !run.duration || run.kind === 'tutorial' ? Infinity : run.start + run.duration + LOOKAHEAD - heardTime(t);
+// 2 Player: gold runs are SHARED. Only P1's feed starts one; each gold shard it places is mirrored onto P2's highway
+// at the same beat and the same lane (P2's own shards hold off meanwhile, so the lane's clear). Both have to clear it:
+// a miss by either fails it for both, and the boost fires for both once the second player completes — so the two
+// trucks get the same kick at the same moment and stay together.
+const goldMirror = [];
+function mirrorGold() {
+  while (goldMirror.length) {
+    const it = goldMirror.shift(), g1 = it.g;
+    if (g1.failed) continue;
+    let g2 = g1.partner;
+    if (!g2) { g2 = g1.partner = { need: g1.need, notes: [], hits: 0, failed: false, pending: null, shared: true, mirror: true, partner: g1 }; goldRuns.push(g2); }
+    if (g2.failed) continue;
+    g2.need = g1.need;
+    const n = spawnNote(it.t, it.x, 'orb', it.band, g2);
+    if (!n) { goldFail(g2, 'gold run lost'); continue; }
+    addGoldRing(n); g2.notes.push(n); g2.lastT = it.t;
+  }
+}
+const goldBlocksP2 = ht => (PL && PL[0].goldPlacing && PL[0].goldPlacing.shared && !PL[0].goldPlacing.failed) || goldRuns.some(g => g.mirror && !g.failed && !g.done && ht < (g.lastT || 0) + 0.45);
+function goldAward(g) {
+  stats.goldRuns = (stats.goldRuns || 0) + 1; stats.goldOk = (stats.goldOk || 0) + 1;
+  { const e = chainEntry('gold'); e.count = (e.count || 0) + 1; e.pts += 500; e.last = clock; }   // a perfect gold run is a skill in the chain too
+  bonusLen = Math.max(bonusT, 8); bonusT = bonusLen; setTimeout(updateHud, 0); setTimeout(updateHud, bonusLen * 1000 + 100);
+  speedBurst();
+  parryReward(15, 20);                                                 // a perfect gold run also tops you up: +15 health, +20 fuel
+  SFX.perfect();
+  if (g.shared) tagPop('GOLD RUN · both perfect!', '#ffd24a');
+  g.done = true;
+}
 function goldFor(t) {
   if (!run || (run.kind === 'tutorial' && !tutGold) || state !== 'playing') return null;
+  if (SPLIT && PSIDE > 0) return null;                                 // 2 Player: P2's gold comes from P1's (shared) runs
+  if (goldPlacing && goldPlacing.failed) { goldPlacing = null; goldNextAt = ctx.currentTime + 25 + Math.random() * 15; }   // (P2 broke a shared run)
   // the song is about to end: close the run on the lanterns already down (or drop it quietly if it's too short)
   if (goldPlacing && goldRoom(t) < 3) { goldPlaced(goldPlacing, null); return null; }
   if (!goldPlacing && t >= goldNextAt && twistAt(carS + 300) < 0.01 && twistAt(carS + 700) < 0.01) {
     const need = run.kind === 'tutorial' ? 8 : 10 + Math.floor(Math.random() * 6);
     if (goldRoom(t) < need * 1.2 + 6) return null;                     // not enough song left to finish one
-    goldPlacing = { need, notes: [], hits: 0, failed: false, pending: null };
+    goldPlacing = { need, notes: [], hits: 0, failed: false, pending: null, shared: SPLIT };
     goldRuns.push(goldPlacing);
   }
   return goldPlacing;
 }
 function goldPlaced(g, n) {
   if (!n) {                                                     // couldn't place it (a 峠 started): the run ends short
-    if (g.notes.length < 6) { g.failed = true; g.notes.forEach(revertGold); } else g.need = g.notes.length;
+    if (g.notes.length < 6) { g.failed = true; g.notes.forEach(revertGold); if (g.partner) { g.partner.failed = true; g.partner.notes.forEach(revertGold); } } else g.need = g.notes.length;
+    g.placed = true;
     goldPlacing = null; goldNextAt = (run ? ctx.currentTime : 0) + 30 + Math.random() * 15; return;
   }
   g.notes.push(n);
-  if (g.notes.length >= g.need) { goldPlacing = null; goldNextAt = n.t + (tutGold ? 4 : 28 + Math.random() * 17); }
+  if (g.notes.length >= g.need) { g.placed = true; goldPlacing = null; goldNextAt = n.t + (tutGold ? 4 : 28 + Math.random() * 17); }
 }
 function revertGold(n) {
   if (!n.gold) return;
@@ -3648,6 +3680,8 @@ function goldFail(g, why) {
   if (goldPlacing === g) { goldPlacing = null; goldNextAt = ctx.currentTime + (tutGold ? 3 : 25 + Math.random() * 15); }
   if (tutGold) goldNextAt = Math.min(goldNextAt, ctx.currentTime + 3);       // tutorial: try again straight away
   tagPop(why, '#f4a08c'); stats.goldRuns = (stats.goldRuns || 0) + 1;
+  const q = g.partner;                                                  // a shared run fails for both players
+  if (q && !q.failed && !q.done) { q.failed = true; q.notes.forEach(revertGold); q.failMsg = 'partner missed · gold run lost'; }
 }
 // the short speed boost (gold runs, perfect solos): a kick of speed that eases back to cruise, with a gold flash
 // soft gold glow round the truck while a boost lasts
@@ -3668,15 +3702,12 @@ function goldHit(g, n) {
   tagPop(`gold ${g.hits}/${g.need}`, '#ffd24a');
   const p = n.mesh.position, c = tmpC2.set('#ffd24a').multiplyScalar(2);
   for (let i = 0; i < 16; i++) sparkles.emit(p, (Math.random() - 0.5) * 6, 2 + Math.random() * 4, (Math.random() - 0.5) * 6, 0.8 + Math.random() * 0.5, 0.3, 0.12, 0.95, c);
-  if (g.hits >= g.need && goldPlacing !== g) {
-    // the whole run: short boost
-    stats.goldRuns = (stats.goldRuns || 0) + 1; stats.goldOk = (stats.goldOk || 0) + 1;
-    { const e = chainEntry('gold'); e.count = (e.count || 0) + 1; e.pts += 500; e.last = clock; }   // a perfect gold run is a skill in the chain too
-    bonusLen = Math.max(bonusT, 8); bonusT = bonusLen; setTimeout(updateHud, 0); setTimeout(updateHud, bonusLen * 1000 + 100);
-    speedBurst();
-    parryReward(15, 20);                                                 // a perfect gold run also tops you up: +15 health, +20 fuel
-    SFX.perfect();
-    g.done = true;
+  const need = g.mirror ? g.partner.need : g.need, placed = g.mirror ? g.partner.placed : goldPlacing !== g;
+  if (g.hits >= need && placed && !g.complete) {
+    g.complete = true;
+    if (!g.shared || !g.partner) goldAward(g);                           // the whole run: short boost
+    else if (g.partner.complete && !g.partner.failed) { goldAward(g); g.partner.awardNow = true; }   // both perfect: both boost now
+    else tagPop('gold run done · waiting for partner', '#ffd24a');
   }
 }
 // a gold lantern was just reached: it needs collecting, and a tap within the window (maybe still to come)
@@ -3690,7 +3721,9 @@ function goldReached(n, collected) {
 function updateGold() {
   for (let i = goldRuns.length - 1; i >= 0; i--) {
     const g = goldRuns[i];
-    if (g.pending && ctx.currentTime > g.pending.until) { g.pending = null; goldFail(g, 'tap Space on gold shards'); }
+    if (g.pending && ctx.currentTime > g.pending.until) { g.pending = null; goldFail(g, `tap ${padOn() ? PB('A') : 'Space'} on gold shards`); }
+    if (g.failMsg) { tagPop(g.failMsg, '#f4a08c'); stats.goldRuns = (stats.goldRuns || 0) + 1; g.failMsg = null; }
+    if (g.awardNow) { g.awardNow = false; goldAward(g); }
     if (g.failed || g.done) goldRuns.splice(i, 1);
   }
 }
@@ -3854,6 +3887,7 @@ function scheduleBeats(now) {
 }
 
 function placeNote(on, D) {
+  if (SPLIT && PSIDE > 0 && goldBlocksP2(heardTime(on.t))) return;   // 2 Player: P2's lane is kept for the shared gold run
   if (run && (run.kind === 'drift' || run.kind === 'rails')) return;   // drift mode / rail park: nothing to collect
   if (run && run.kind === 'tutorial' && tut && tut.i <= 1) return;    // tutorial, steering + dash steps: an empty road, nothing to distract
   if (finale) return;                                                 // finale: the road is clear for the fight
@@ -3893,6 +3927,7 @@ function placeNote(on, D) {
     if (twinX !== null) holdDur = parallel ? TWIN_LEAD + P * PARALLEL_BEATS : Math.min(3.2, Math.max(holdDur, TWIN_LEAD + P * 2.4));   // a lead-in, then the transfer window
     const n = spawnNote(heardTime(on.t), x, type, on.band, goldRun, holdDur, twinX, null, parallel);
     if (goldRun && n) addGoldRing(n);
+    if (goldRun && n && goldRun.shared) goldMirror.push({ t: n.t, x: n.x, band: on.band, g: goldRun });
     if (goldRun) goldPlaced(goldRun, n);
     lastX = x;
     if (n && n.hold) { lastHoldT = on.t; lastNoteT = on.t + ((n.twin || n.hold).s1 - n.s) / Math.max(speed, 5); return; }   // nothing else until the rails end
@@ -7382,7 +7417,7 @@ let viewSplit = false, splitK = 0;
 const halfCams = [new THREE.PerspectiveCamera(), new THREE.PerspectiveCamera()], camSharedOff = new THREE.PerspectiveCamera();
 const _hq = new THREE.Quaternion();
 function splitLayout() {
-  if (!SPLIT || !PL) return;
+  if (!SPLIT || !PL || !innerWidth || !innerHeight) return;   // (a hidden / minimised window has no size: wait for the next resize)
   const half = Math.floor(innerWidth / 2), pr = renderer.getPixelRatio();
   if (splitK > 0) {
     composer.setSize(half, innerHeight); grade.uniforms.res.value.set(half * pr, innerHeight * pr);
@@ -7393,6 +7428,30 @@ function splitLayout() {
   attachDepth();
   camShared.aspect = innerWidth / innerHeight; camShared.updateProjectionMatrix();
   document.body.classList.toggle('viewSplit', splitK > 0);
+}
+// Catch-up: a player who's dropped more than CATCHUP_AT metres behind for a moment (a wreck, a spin, a crash into a
+// barrier) is put back on the road ~20 m behind the leader, on their own highway, at the leader's speed — with a flash,
+// so both stay in one view and in the same part of the song. Their pending shards / rails / traffic are cleared (they'd
+// all be behind them now). It waits while a shared gold run is live, and the 峠 handles its own spacing.
+const CATCHUP_AT = 110, CATCHUP_HOLD = 1.5;
+let catchT = 0;
+function checkCatchUp(dt) {
+  const [a, b] = PL, lead = a.carS >= b.carS ? a : b, trail = lead === a ? b : a;
+  const goldLive = PL.some(p => p.goldRuns.some(g => !g.failed && !g.done)) || !!a.goldPlacing;
+  const inSolo = twistAt(trail.carS) > 0.01 || twistAt(lead.carS) > 0.01;
+  catchT = lead.carS - trail.carS > CATCHUP_AT && !goldLive && !inSolo && !trail.respawnTo ? catchT + dt : 0;
+  if (catchT > CATCHUP_HOLD) { catchT = 0; trail.respawnTo = { s: lead.carS - 20, v: lead.speed }; }
+}
+function splitRespawn(p) {
+  const to = p.respawnTo; p.respawnTo = null;
+  endDrift('quit'); clearNotes(); clearTraffic(); spinT = 0;
+  carS = to.s; speed = Math.max(to.v, 20); cruise = Math.max(cruise, speed);
+  latVel = dashV = dashF = knockV = 0; hopY = hopV = 0; grindK = 0; lastWheel = [null, null];
+  fx.flash = 0.55; fx.tint.set('#bfe9ff'); shake = Math.max(shake, 0.4); rumble(0.4, 0.6, 200);
+  roadPoint(carS, lateral, 0.5, _f);
+  const c = tmpC2.set('#bfe9ff').multiplyScalar(2);
+  for (let k = 0; k < 30; k++) sparkles.emit(_f, (Math.random() - 0.5) * 8, 1 + Math.random() * 4, (Math.random() - 0.5) * 8, 0.6 + Math.random() * 0.4, 0.35, 0.12, 0.95, c);
+  tagPop('caught up!', '#9fe8ff');
 }
 function updateViewSplit(dt) {
   const ds = Math.abs(PL[0].carS - PL[1].carS);
@@ -7436,7 +7495,7 @@ function renderHalves() {
 function sharedCamera(dt) {
   const [a, b] = PL, ps = PSIDE; PSIDE = 0;
   const xa = a.lateral - hwOff(a.carS), xb = b.lateral + hwOff(b.carS), sMid = (a.carS + b.carS) / 2, xMid = (xa + xb) / 2;
-  const spread = Math.abs(xb - xa) + Math.abs(a.carS - b.carS) * 0.5, narrow = Math.max(1, 1.1 / camShared.aspect);
+  const spread = Math.abs(xb - xa) + Math.abs(a.carS - b.carS) * 0.5, narrow = Math.max(1, 1.1 / (innerHeight > 0 ? innerWidth / innerHeight : 1));
   const back = (34 + spread * 0.9) * camUser.dist * narrow, up = (20 + spread * 0.45) * camUser.dist * camUser.tilt * narrow;
   // aim at the midpoint of the two trucks themselves (on a tight bend that's well off the road's centre line), from
   // behind along the road's heading there
@@ -7444,6 +7503,8 @@ function sharedCamera(dt) {
   roadPoint(sMid + 1, 0, 0, _b).sub(roadPoint(sMid, 0, 0, _a)).setY(0).normalize();
   _a.copy(_f).addScaledVector(_b, -back); _a.y = _f.y + up;
   _b.multiplyScalar(14 + spread * 0.25).add(_f);
+  if (!Number.isFinite(_a.x + _a.y + _a.z + _b.x + _b.y + _b.z)) { PSIDE = ps; return; }
+  if (!Number.isFinite(shCam.pos.x + shCam.pos.y + shCam.pos.z + shCam.look.x)) shCam.ready = false;   // never let a bad frame stick
   const k = shCam.ready ? 1 - Math.exp(-dt * 6) : 1; shCam.ready = true;
   shCam.pos.lerp(_a, k); shCam.look.lerp(_b, k);
   camShared.position.copy(shCam.pos);
@@ -7481,6 +7542,8 @@ function splitFrame(t, dtReal) {
   for (const p of PL) {
     loadP(p);
     pollPad(dtReal, p.pads);
+    if (p.respawnTo) splitRespawn(p);
+    if (p.side > 0) mirrorGold();
     if (playing && run) { if (run.beats) feedBeats(now); updateNotes(now, dt); }
     updateDebris(dt);
     updateWorld(dt, now);
@@ -7491,6 +7554,7 @@ function splitFrame(t, dtReal) {
   const fl = PL.reduce((m, p) => p.fxOut.flash > m.fxOut.flash ? p : m);
   grade.uniforms.fxFlash.value = fl.fxOut.flash; grade.uniforms.fxTint.value.copy(fl.fxOut.tint);
   grade.uniforms.fxPunch.value = Math.max(...PL.map(p => p.fxOut.punch)); grade.uniforms.fxDesat.value = Math.max(...PL.map(p => p.fxOut.desat));
+  if (playing) checkCatchUp(dt);
   updateViewSplit(dt);
   sharedCamera(dt);
   if (splitK > 0) PL.forEach((p, i) => halfCam(p, i, THREE.MathUtils.smoothstep(splitK, 0, 1)));   // (the HUD tags follow these)
@@ -7600,7 +7664,7 @@ function endSplit(toMenu = false) {
   splitAudio(false); for (const p of PL) if (p.musicFx) p.musicFx.miss = 0;
   document.querySelector('#hud.splitR')?.remove(); document.getElementById('hud').classList.remove('splitL');
   if (car2) car2.visible = false;
-  SPLIT = false; PSIDE = 0; HUDR = null; curP = null; PL = null; tandemLead = null; viewSplit = false; splitK = 0; document.body.classList.remove('viewSplit'); document.body.classList.remove('split');
+  SPLIT = false; PSIDE = 0; HUDR = null; curP = null; PL = null; tandemLead = null; goldMirror.length = 0; catchT = 0; viewSplit = false; splitK = 0; document.body.classList.remove('viewSplit'); document.body.classList.remove('split');
   renderer.setScissorTest(false); renderer.setViewport(0, 0, innerWidth, innerHeight); composer.passes[0].camera = camera;
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); applyGraphics();
   state = 'menu'; $('hud').classList.add('hidden'); $('pause').classList.add('hidden'); $('stage').classList.remove('show');
