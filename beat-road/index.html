@@ -1019,30 +1019,63 @@ composer.addPass(new OutputPass());
 const grade = new ShaderPass({
   uniforms: { tDiffuse: { value: null }, time: { value: 0 }, vig: { value: 0.9 }, warm: { value: new THREE.Color(1.03, 1.0, 0.95) },
               sat: { value: 1.45 }, contrast: { value: 1.18 }, tone: { value: 0.22 }, halftone: { value: 0.5 }, lines: { value: 0 }, res: { value: new THREE.Vector2(1, 1) },
-              fxFlash: { value: 0 }, fxPunch: { value: 0 }, fxDesat: { value: 0 }, fxTint: { value: new THREE.Color() }, trip: { value: 0 }, kick: { value: 0 } },
+              fxFlash: { value: 0 }, fxPunch: { value: 0 }, fxDesat: { value: 0 }, fxTint: { value: new THREE.Color() }, trip: { value: 0 }, kick: { value: 0 }, tmode: { value: 0 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
   fragmentShader: `
-    uniform sampler2D tDiffuse; uniform float time, vig, fxFlash, fxPunch, fxDesat, sat, contrast, tone, halftone, lines, trip, kick; uniform vec2 res; uniform vec3 warm, fxTint; varying vec2 vUv;
+    uniform sampler2D tDiffuse; uniform float time, vig, fxFlash, fxPunch, fxDesat, sat, contrast, tone, halftone, lines, trip, kick, tmode; uniform vec2 res; uniform vec3 warm, fxTint; varying vec2 vUv;
     float h1(float x){ return fract(sin(x * 91.17) * 43758.5453); }
     // rotate a colour's hue round the grey axis
     vec3 hueRot(vec3 col, float a){ const vec3 k = vec3(0.57735); float cs = cos(a); return col * cs + cross(k, col) * sin(a) + k * dot(k, col) * (1.0 - cs); }
+    float n2(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    // thermal-camera ramp: deep blue → violet → red → orange → white-hot
+    vec3 heat(float t){ t = clamp(t, 0.0, 1.0); return clamp(vec3(smoothstep(0.15, 0.55, t) + 0.35 * smoothstep(0.0, 0.3, t) * (1.0 - smoothstep(0.3, 0.5, t)), smoothstep(0.45, 0.9, t), 0.55 * (1.0 - smoothstep(0.25, 0.5, t)) + smoothstep(0.85, 1.0, t) + 0.25), 0.0, 1.0); }
     void main(){
       vec2 d = vUv - 0.5;
       // the trip (skill chain groove): the picture starts to breathe — a slow liquid wobble, stronger toward the edges,
       // that swells on the kick
-      vec2 uv = vUv;
-      if (trip > 0.001) {
-        float w = trip * (0.002 + 0.009 * length(d)) * (1.0 + kick * 0.8);
-        uv += vec2(sin(vUv.y * 13.0 + time * 2.4) + 0.5 * sin(vUv.y * 31.0 - time * 3.7), cos(vUv.x * 11.0 + time * 2.0) + 0.5 * cos(vUv.x * 27.0 + time * 3.1)) * w;
+      // Each chain rolls a different trip style (tmode): 0 rainbow rings, 1 kaleidoscope, 2 VHS tape, 3 thermal camera,
+      // 4 sunset tunnel, 5 pop duotone
+      vec2 uv = vUv; int m = int(tmode + 0.5); float ar = res.x / res.y;
+      // the play lane: the road from the horizon down to the truck, where the lanterns, rails and traffic are. The trip
+      // stays mostly out of it (warps, colour shifts and glows all fade to ~30% there) and plays out in the scenery round it
+      float laneW = 0.07 + 0.3 * clamp((0.7 - vUv.y) / 0.7, 0.0, 1.0);
+      float lane = (1.0 - smoothstep(laneW, laneW + 0.13, abs(vUv.x - 0.5))) * (1.0 - smoothstep(0.66, 0.8, vUv.y));
+      float tw = trip * (1.0 - 0.7 * lane);
+      if (tw > 0.001) {
+        if (m == 1) {
+          // the outer screen folds into eight mirrored wedges that turn slowly; the middle (the road ahead) stays put
+          vec2 p = d * vec2(ar, 1.0); float r = length(p), seg = 0.7853982;
+          float a = atan(p.y, p.x) + time * 0.12; a = abs(mod(a, seg) - seg * 0.5) - time * 0.12;
+          uv = mix(uv, 0.5 + vec2(cos(a), sin(a)) * r / vec2(ar, 1.0), tw * smoothstep(0.42, 0.85, r) * 0.45);
+        } else if (m == 2) {
+          // tape wobble: fine line jitter, and torn bands that jump sideways (more of them on the kick)
+          float tb = floor(time * 11.0), band = step(0.92 - kick * 0.12, n2(vec2(floor(vUv.y * 36.0), tb)));
+          uv.x += (sin(vUv.y * 190.0 + time * 33.0) * 0.0012 + band * (n2(vec2(tb, floor(vUv.y * 36.0) + 3.0)) - 0.5) * 0.07) * tw;
+        } else if (m == 3) {
+          uv.x += sin(vUv.y * 70.0 + time * 9.0) * 0.0022 * tw * (1.0 + kick);   // heat haze
+        } else if (m == 4) {
+          uv = 0.5 + d * (1.0 - tw * (0.025 + 0.025 * sin(time * 1.7)) - kick * tw * 0.035);   // the view breathes in and out
+        } else {
+          float w = tw * (0.002 + 0.009 * length(d)) * (1.0 + kick * 0.8) * (m == 5 ? 1.6 : 1.0);
+          uv += vec2(sin(vUv.y * 13.0 + time * 2.4) + 0.5 * sin(vUv.y * 31.0 - time * 3.7), cos(vUv.x * 11.0 + time * 2.0) + 0.5 * cos(vUv.x * 27.0 + time * 3.1)) * w;
+        }
       }
       vec4 c = vec4(0.0);
       // radial zoom punch (transitions)
       for (int i = 0; i < 8; i++) c += texture2D(tDiffuse, uv - d * fxPunch * float(i) / 7.0);
       c /= 8.0;
       // …and the colours split apart (red out, blue in), wider on the beat
-      if (trip > 0.001) {
-        float ca = trip * 0.012 * (1.0 + kick * 1.6);
-        c.r = mix(c.r, texture2D(tDiffuse, uv + d * ca).r, 0.9); c.b = mix(c.b, texture2D(tDiffuse, uv - d * ca).b, 0.9);
+      if (tw > 0.001) {
+        float ca = tw * 0.012 * (1.0 + kick * 1.6);
+        vec2 cd = m == 2 ? vec2(0.35 * (1.0 + kick), 0.0) : d;   // VHS bleeds sideways
+        if (m == 3) ca *= 0.3;
+        c.r = mix(c.r, texture2D(tDiffuse, uv + cd * ca).r, 0.9); c.b = mix(c.b, texture2D(tDiffuse, uv - cd * ca).b, 0.9);
+        if (m == 4) {
+          // echo trails streaming out of the vanishing point
+          vec3 e = vec3(0.0);
+          for (int i = 1; i < 5; i++) e += texture2D(tDiffuse, 0.5 + (uv - 0.5) * (1.0 - float(i) * 0.045 * (1.0 + kick))).rgb * (1.0 - float(i) * 0.2);
+          c.rgb = mix(c.rgb, max(c.rgb, e * 0.55), tw * 0.85);
+        }
       }
       float g = dot(c.rgb, vec3(0.299, 0.587, 0.114));
       // punchy comic colour: push saturation, then pull values toward flat steps
@@ -1057,15 +1090,47 @@ const grade = new ShaderPass({
       c.rgb *= 1.0 - halftone * 0.45 * shade * (1.0 - smoothstep(0.18, 0.24, dotR - shade * 0.18 + 0.12));
       g = dot(c.rgb, vec3(0.299, 0.587, 0.114));
       c.rgb = mix(c.rgb, vec3(g), fxDesat);
-      if (trip > 0.001) {
-        // hues roll round the colour wheel in rings spreading out from the middle, cycling with time and kicking on the beat
-        float r = length(d * vec2(res.x / res.y, 1.0));
-        c.rgb = mix(c.rgb, hueRot(c.rgb, time * 1.3 - r * 7.0 + kick * 1.2), trip * 0.6);
-        c.rgb = max(mix(vec3(dot(c.rgb, vec3(0.299, 0.587, 0.114))), c.rgb, 1.0 + trip * 0.5), 0.0);   // and everything gets more vivid
-        // a rainbow aura breathing in from the screen edges
-        float ang = atan(d.y, d.x) / 6.2831853;
-        vec3 rb = 0.5 + 0.5 * cos(6.2831853 * (vec3(0.0, 0.33, 0.67) + time * 0.22 + ang * 2.0 + r * 1.5));
-        c.rgb += rb * trip * smoothstep(0.28, 0.85, r) * (0.18 + kick * 0.55);
+      if (tw > 0.001) {
+        float r = length(d * vec2(ar, 1.0)), ang = atan(d.y, d.x) / 6.2831853, l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+        if (m == 1) {
+          // kaleidoscope: hues fan out by angle, with a pink / cyan glow round the rim
+          c.rgb = mix(c.rgb, hueRot(c.rgb, ang * 12.566 + time * 0.7 + kick), tw * 0.5);
+          c.rgb = max(mix(vec3(l), c.rgb, 1.0 + tw * 0.6), 0.0);
+          c.rgb += mix(vec3(1.0, 0.25, 0.8), vec3(0.2, 0.9, 1.0), 0.5 + 0.5 * sin(ang * 50.265 + time * 2.0)) * tw * smoothstep(0.3, 0.85, r) * (0.16 + kick * 0.5);
+        } else if (m == 2) {
+          // VHS: teal highlights, violet shadows, scanlines, grain and a tracking bar rolling down the screen
+          c.rgb = mix(c.rgb, c.rgb * vec3(0.92, 1.04, 1.12) + vec3(0.06, 0.0, 0.08) * (1.0 - l), tw);
+          c.rgb = mix(c.rgb, hueRot(c.rgb, vUv.y * 2.5 - time * 0.9), tw * 0.3);
+          c.rgb *= 1.0 - tw * 0.2 * (0.5 + 0.5 * sin(vUv.y * res.y * 1.6));
+          c.rgb += (n2(floor(vUv * res * 0.5) + fract(time) * 91.0) - 0.5) * 0.14 * tw;
+          float bar = fract(vUv.y + time * 0.18);
+          c.rgb += vec3(0.9, 1.0, 1.0) * smoothstep(0.0, 0.03, bar) * (1.0 - smoothstep(0.03, 0.08, bar)) * tw * (0.12 + kick * 0.3);
+        } else if (m == 3) {
+          // thermal camera: brightness becomes heat, with contour lines crawling up the gradient on the beat
+          vec3 h = heat(l * 1.15 + kick * 0.12);
+          float iso = 1.0 - smoothstep(0.0, 0.08, abs(fract(l * 7.0 - time * 0.6) - 0.5) * 2.0 - 0.85);
+          c.rgb = mix(c.rgb, h + iso * 0.18, tw * 0.7);
+          c.rgb += vec3(1.0, 0.45, 0.1) * tw * smoothstep(0.35, 0.9, r) * (0.1 + kick * 0.35);
+        } else if (m == 4) {
+          // sunset tunnel: pink sky to amber floor, and god-rays spinning out of the vanishing point
+          vec3 tint = mix(vec3(1.15, 0.7, 0.35), vec3(1.05, 0.55, 1.0), vUv.y);
+          c.rgb = mix(c.rgb, c.rgb * tint * 1.1, tw * 0.75);
+          float rays = pow(0.5 + 0.5 * sin(ang * 75.4 + time * 1.4), 6.0) * smoothstep(0.12, 0.7, r);
+          c.rgb += vec3(1.0, 0.75, 0.4) * rays * tw * (0.14 + kick * 0.4);
+        } else if (m == 5) {
+          // pop duotone: the picture flattens into bands of two colours that drift round the wheel and swap on the kick
+          vec3 c1 = hueRot(vec3(1.0, 0.2, 0.55), time * 0.4), c2 = hueRot(vec3(0.15, 0.45, 1.0), time * 0.4 + kick * 1.5);
+          vec3 duo = l < 0.3 ? c2 * 0.55 : l < 0.58 ? c1 : mix(c1, vec3(1.0, 0.96, 0.82), 0.65);
+          c.rgb = mix(c.rgb, duo, tw * 0.72);
+          float st = step(0.5, fract((vUv.x + vUv.y) * res.y / 9.0 - time * 0.5));
+          c.rgb *= 1.0 - st * tw * smoothstep(0.35, 0.85, r) * 0.25;
+        } else {
+          // rainbow rings: hues roll round the colour wheel in rings spreading out from the middle, kicking on the beat
+          c.rgb = mix(c.rgb, hueRot(c.rgb, time * 1.3 - r * 7.0 + kick * 1.2), tw * 0.6);
+          c.rgb = max(mix(vec3(dot(c.rgb, vec3(0.299, 0.587, 0.114))), c.rgb, 1.0 + tw * 0.5), 0.0);   // and everything gets more vivid
+          vec3 rb = 0.5 + 0.5 * cos(6.2831853 * (vec3(0.0, 0.33, 0.67) + time * 0.22 + ang * 2.0 + r * 1.5));
+          c.rgb += rb * tw * smoothstep(0.28, 0.85, r) * (0.18 + kick * 0.55);   // a rainbow aura breathing in from the edges
+        }
       }
       float edge = smoothstep(0.15, 0.75, length(d));
       c.rgb += fxTint * fxFlash * (0.25 + edge * 0.9);
@@ -1282,6 +1347,11 @@ function updateAmbient(dt, focus, t) {
 // or neon confetti where there's none), and light streaks race along the road edges. Lose the chain and it all drains
 // away; bank it and a burst of light goes off round the truck (with a chime) — bigger and brighter the more you banked.
 let grooveK = 0;
+// the trip has six looks (see the grade shader); every new chain rolls one it didn't just use, and a chain that stays deep in
+// the trip for a long time breathes out and rolls another, so long runs don't wear one look out
+const TRIP_STYLES = 6;
+let tripStyle = Math.floor(Math.random() * TRIP_STYLES), tripArmed = true, tripDeepT = 0, tripSwap = false;
+function rollTripStyle() { tripStyle = (tripStyle + 1 + Math.floor(Math.random() * (TRIP_STYLES - 1))) % TRIP_STYLES; tripDeepT = 0; }
 const GROOVE_N = 700, grooveFx = makeSoftPoints(GROOVE_N, false), groovePh = new Float32Array(GROOVE_N).map(() => Math.random() * 100);
 const GROOVE_NEON = ['#35e0ff', '#ff4fd2', '#ffd23f', '#86e34f'].map(c => new THREE.Color(c).multiplyScalar(1.4));
 { const P = grooveFx.geometry.attributes.position.array; for (let i = 0; i < GROOVE_N; i++) { P[i * 3] = (Math.random() - 0.5) * 70; P[i * 3 + 1] = Math.random() * 28; P[i * 3 + 2] = (Math.random() - 0.5) * 70; } }
@@ -1413,6 +1483,7 @@ function terrainHeight(p, off, x, z, bw) {
   // of road close by; if the hillside rose here it would bury them (and swallow the camera). Falling away, it can't.
   const tw = twistAt(p.s);
   if (tw <= 0) return h;
+  if (mixN('city', bw) > 0.55) return lerp(h, p.y - 0.05 - smooth(7.2, 8.4, a) * EXP_DROP, tw);   // Tokyo: the 峠 is an elevated expressway
   const ridge = p.y + (p.b || 0) * off * (1 - smooth(9, 30, a)) - 0.05 - smooth(7, 11, a) * 0.45 - smooth(11, 50, a) * (24 + n * 10);
   return lerp(h, Math.min(h, ridge), tw);
 }
@@ -1889,6 +1960,55 @@ const waterMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness:
 const WATER = new THREE.Color('#4e8c9c');
 const pillarGeo = shared(new THREE.BoxGeometry(1.6, 1, 1.6).translate(0, -0.5, 0));       // top at 0, scaled down to the water
 const railPostGeo = shared(new THREE.BoxGeometry(0.14, 1.1, 0.14).translate(0, 0.55, 0));
+// Tokyo's solo 峠 is a Shuto-style elevated expressway: the deck stands EXP_DROP above the streets on concrete
+// T-pillars, with jersey-barrier walls and orange sodium lamps along both edges. The city sits below it, so the high
+// camera can see over the rooftops round every bend (buildings beside the deck are kept below road level)
+const EXP_DROP = 22;
+const expressAt = s => mixN('city', biomeAt(s)) > 0.55 ? twistAt(s) : 0;
+const expConcrete = new THREE.MeshStandardMaterial({ color: '#a7a5ad', roughness: 0.9, side: THREE.DoubleSide });
+const sodiumMat = new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffae4a').multiplyScalar(2.2), toneMapped: false });
+const expPoleGeo = shared(new THREE.BoxGeometry(0.16, 6.4, 0.16).translate(0, 3.2, 0));
+const expArmGeo = shared(new THREE.BoxGeometry(1.7, 0.12, 0.12).translate(-0.85, 6.35, 0));
+const expHeadGeo = shared(new THREE.BoxGeometry(0.6, 0.14, 0.32).translate(-1.55, 6.25, 0));
+const expCapGeo = shared(new THREE.BoxGeometry(9.0, 1.2, 1.8).translate(0, -0.6, 0));   // the T's crossbeam under the deck
+function addExpressway(g, i0, i1) {
+  const on = i => expressAt(i * STEP) > 0.5;
+  let any = false;
+  for (let i = i0; i <= i1 && !any; i++) any = on(i);
+  if (!any) return;
+  const pos = [], idx = [];
+  const face = (a, b, c, d) => { const n = pos.length / 3; pos.push(...a, ...b, ...c, ...d); idx.push(n, n + 1, n + 2, n + 1, n + 3, n + 2); };
+  const at = (p, o, y) => [p.x + Math.cos(p.h) * o, surfY(p, o) + y, p.z + Math.sin(p.h) * o];
+  for (const side of [-1, 1]) for (let i = i0; i < i1; i++) {
+    if (!on(i) || !on(i + 1)) continue;
+    const p = pts[i], q = pts[i + 1];
+    const wi = side * 7.0, wo = side * 7.35;
+    face(at(p, wi, 0), at(q, wi, 0), at(p, wi, 1.05), at(q, wi, 1.05));          // barrier wall: inner face
+    face(at(p, wi, 1.05), at(q, wi, 1.05), at(p, wo, 1.05), at(q, wo, 1.05));    // its top
+    face(at(p, wo, 1.05), at(q, wo, 1.05), at(p, wo, -1.6), at(q, wo, -1.6));    // outer face, down the deck edge
+  }
+  if (pos.length) {
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+    g.add(mesh(geo, expConcrete, true, true));
+  }
+  const pillars = [], caps = [], poles = [];
+  for (let i = i0; i < i1; i++) {
+    if (!on(i)) continue;
+    const p = pts[i];
+    if (i % 16 === 0) {                                                         // T-pillars every 32 m
+      const top = p.y - 1.6, h = EXP_DROP - 1.4;
+      dummy.position.set(p.x, top - 1.2, p.z); dummy.rotation.set(0, -p.h, 0); dummy.scale.set(1.3, h, 1.3); dummy.updateMatrix(); pillars.push(dummy.matrix.clone());
+      dummy.position.set(p.x, top, p.z); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); caps.push(dummy.matrix.clone());
+    }
+    if (i % 12 === 0) for (const side of [-1, 1]) {                             // sodium lamps on the walls, leaning over the road
+      const o = side * 7.18;
+      dummy.position.set(p.x + Math.cos(p.h) * o, surfY(p, o) + 1.05, p.z + Math.sin(p.h) * o);
+      dummy.rotation.set(0, -p.h + (side > 0 ? 0 : Math.PI), 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); poles.push(dummy.matrix.clone());
+    }
+  }
+  if (pillars.length) g.add(instanced(pillarGeo, expConcrete, pillars), instanced(expCapGeo, expConcrete, caps));
+  if (poles.length) g.add(instanced(expPoleGeo, pillarMat, poles), instanced(expArmGeo, pillarMat, poles), instanced(expHeadGeo, sodiumMat, poles));
+}
 function addBridge(g, i0, i1) {
   const onDeck = i => bridgeAt(i * STEP) > 0.01;
   let any = false;
@@ -2098,7 +2218,7 @@ function addJapaneseProps(g, i0, i1) {
   const vendCount = (Math.random() < Bmid.vending ? 1 : 0) + (Bmid.city > 0.5 && Math.random() < 0.6 ? 1 : 0);
   for (let n = 0; n < vendCount; n++) {
     const r = i0 + 4 + Math.floor(Math.random() * 50), off = 9.6, p = pts[r];
-    if (bridgeAt(r * STEP) > 0.01 || stationAt(r * STEP)) continue;
+    if (bridgeAt(r * STEP) > 0.01 || stationAt(r * STEP) || expressAt(r * STEP) > 0.01) continue;
     const x = p.x + Math.cos(p.h) * off, z = p.z + Math.sin(p.h) * off, ry = faceRoad(p, off);
     for (let m = 0; m < 1 + Math.floor(Math.random() * 3); m++) {
       const dx = (m - 1) * 1.05, ox = Math.sin(p.h) * dx, oz = -Math.cos(p.h) * dx;
@@ -2127,8 +2247,10 @@ function addJapaneseProps(g, i0, i1) {
         const h = hMin + Math.pow(Math.random(), 1.6) * (hMax - hMin);
         const cx = p.x + Math.cos(p.h) * offC, cz = p.z + Math.sin(p.h) * offC;
         if (!clearOfRoad(cx, cz, Math.hypot(across / 2, along / 2) + 9, rc)) { r += rows; continue; }
-        bgeos.push(buildingGeo(p.x + Math.cos(p.h) * offC, p.z + Math.sin(p.h) * offC, p.y - 0.2, p.h, across, h, along * 0.92));
-        if (o0 === 12 && h > 10 && Math.random() < 0.6) addSign(sv, p, side * (o0 - 1.0), 3.6 + Math.random() * Math.min(10, h - 7));
+        const ek = expressAt(rc * STEP), drop = EXP_DROP * ek;
+        const hb = ek > 0.05 ? (o0 < 60 ? Math.max(4, Math.min(h, drop - 3 - Math.random() * 6)) : Math.min(h + drop, drop + 3 + Math.random() * 5)) : h;   // near rows: rooftops below the deck; the back row only just tops it
+        bgeos.push(buildingGeo(p.x + Math.cos(p.h) * offC, p.z + Math.sin(p.h) * offC, p.y - 0.2 - drop, p.h, across, hb, along * 0.92));
+        if (ek < 0.05 && o0 === 12 && h > 10 && Math.random() < 0.6) addSign(sv, p, side * (o0 - 1.0), 3.6 + Math.random() * Math.min(10, h - 7));
       }
       r += rows;
     }
@@ -2195,6 +2317,7 @@ function buildChunk(k) {
   if (posts.length) g.add(instanced(postGeo, postMat, posts), instanced(capGeo, capMat, posts));
   addJapaneseProps(g, i0, i1);
   addBridge(g, i0, i1);
+  addExpressway(g, i0, i1);
   addStations(g, i0, i1);
   addPaddies(g, i0, i1);
 
@@ -2655,6 +2778,7 @@ function spawnNote(t, x, type, band, goldRun = null, holdDur = 0, twinX = null, 
     const len = Math.max(speed, 5) * holdDur, hold = addHold(s, s + len, x, band);
     if (hold) { const twin = twinX !== null ? addHold(...twinSpan(s, s + len, len, parallel), twinX, band, { x, s1: s + len }) : null; transferLanterns(hold, twin, band); return { s, hold, twin }; }
   }
+  if (goldRun && type === 'orb') goldPath(s, goldRun);
   return makeNote(t, s, x, type, band, goldRun);
 }
 function makeNote(t, s, x, type, band, goldRun) {
@@ -2847,7 +2971,7 @@ function grindSound(on) {
   if (grindSnd) { grindSnd.f.frequency.value = 1800 + speed * 25; grindSnd.ring.frequency.value = 1600 + Math.sin(performance.now() / 70) * 40; }
 }
 function dropHold(h) { for (const m of [h.mesh, h.halo]) if (m) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); } }
-function clearHolds() { holds.forEach(dropHold); holds.length = 0; grindSound(false); trickOut = null; clearKickers(); }
+function clearHolds() { holds.forEach(dropHold); holds.length = 0; grindSound(false); trickOut = null; clearKickers(); clearGoldMarks(); }
 
 // ---------------------------------------------------------------- kickers: little ramps on the road, on the beat
 // Now and then a lantern's beat gets a small hazard-striped kicker instead. Drive over one and the truck hops. Tap Space
@@ -2898,7 +3022,7 @@ function launchAir(k) {
   hopV = Math.max(hopV, KICK_POP); endDrift('quit');
   const T = pick(AIR_TRICKS);
   airTrick = { ...T, t: 0, dur: 2 * KICK_POP / 24 };
-  tagPop(T.name, '#fffaf0');
+  if (k.gold) goldBonus('GOLD ' + T.name); else tagPop(T.name, '#fffaf0');
 }
 function landAir() {
   const T = airTrick; airTrick = null;
@@ -2923,8 +3047,8 @@ function updateKickers(dt) {
     if (k.state === 'hopped' && held.holdTap > k.reachT && held.holdTap - k.reachT <= KICK_WINDOW) launchAir(k);   // a touch late still counts
     // the lip lights up as the moment approaches and flashes white in the window
     const lead = k.state === 'pending' ? THREE.MathUtils.clamp(1 - tTo / 0.9, 0, 1) : 0, inWin = k.state === 'pending' && Math.abs(tTo) * 1000 <= KICK_WINDOW;
-    k.glow.value = k.state === 'launched' ? 0.6 : inWin ? 2.4 : lead * lead * 1.4 + 0.15 * vis.kick;
-    k.glowCol.value.copy(inWin ? WHITE_C : KICK_YEL);
+    k.glow.value = k.state === 'launched' ? 0.6 : inWin ? 2.4 : lead * lead * 1.4 + 0.15 * vis.kick + (k.gold ? 0.55 + 0.3 * vis.kick : 0);   // gold ones glow throughout
+    k.glowCol.value.copy(inWin ? WHITE_C : k.gold ? GOLD_C : KICK_YEL);
     if (k.mesh.material.transparent) {                                  // appearing: fade up with a white flash
       const ap = Math.min(1, (now - k.born) / 600);
       k.mesh.material.opacity = 1 - Math.pow(1 - ap, 3);
@@ -3081,6 +3205,7 @@ function updateHolds(dt) {
           useRailTap();
           h.state = 'holding'; hopV = Math.max(hopV, 4); endDrift('quit'); grindSound(true);
           setTrick(h, trickInput() || 'fifty');
+          if (h.gold) { h.gold = null; goldBonus('GOLD GRIND'); }
         } else if (carS > (h.linked ? h.s1 - v * 0.4 : h.s0 + v * 0.3)) { if (h.left) h.state = 'done'; else endHold(h, false); }   // a twin (or the rail you hopped off) stays open to transfer onto
       }
       if (h.state === 'holding') {
@@ -3138,7 +3263,7 @@ function updateHolds(dt) {
       else { const k = on ? THREE.MathUtils.clamp(cue / 0.9, 0, 1) : 1; u.uSpread.value = 0.05 + 1.7 * k; u.uOpacity.value = on ? 0.3 + 0.5 * (1 - k) : 0; u.uColor.value.copy(h.base).multiplyScalar(1.6); }
     }
     // the blocks glow in the music's colour while you're grinding them
-    const em = h.state === 'holding' ? 0.06 + 0.06 * vis.kick : 0;
+    const em = h.state === 'holding' ? 0.06 + 0.06 * vis.kick : h.gold ? 0.32 + 0.25 * vis.kick : 0;   // a gold rail glows gold on the beat until you're on it
     h.mesh.material.emissive.copy(h.base).multiplyScalar(em);
     const ap = Math.min(1, (performance.now() - h.born) / 600);         // appearing: fade up through a bright flash
     if (h.mesh.material.transparent) {
@@ -3201,10 +3326,60 @@ function updateGoldRing(n) {
   n.ring.material.opacity = dt > GOLD_APPROACH * 1.4 ? 0 : 0.12 + (1 - k) * 0.4;
   n.ring.material.color.set(n.pressed ? '#9fe8b4' : inWindow ? '#fff1c4' : '#ffd24a');
 }
+// a gold run that starts on (or runs through) a kicker or a rail: that ramp / rail turns gold too, and gets its own
+// closing timing ring on its tap point. Launching the gold kicker on time, or hopping onto the gold rail, is a bonus in
+// the chain's gold entry (it isn't one of the run's lanterns, so missing it doesn't break the run)
+const GOLD_C = new THREE.Color('#ffc21a'), GOLD_DK = new THREE.Color('#6e3f06'), _gcol = new THREE.Color();
+function goldify(geo) {
+  const c = geo.attributes.color;
+  for (let i = 0; i < c.count; i++) { const l = Math.min(1, (c.getX(i) * 0.3 + c.getY(i) * 0.59 + c.getZ(i) * 0.11) * 1.5); _gcol.copy(GOLD_DK).lerp(GOLD_C, l); c.setXYZ(i, _gcol.r, _gcol.g, _gcol.b); }
+  c.needsUpdate = true;
+}
+const goldMarks = [];
+function addGoldMark(s, x, y, size, live) {
+  const r = new THREE.Mesh(goldRingGeo, goldRingMat.clone()); r.renderOrder = 6; r.frustumCulled = false; scene.add(r);
+  goldMarks.push({ s, x, y, size, live, r });
+}
+function clearGoldMarks() { for (const m of goldMarks) { scene.remove(m.r); m.r.material.dispose(); } goldMarks.length = 0; }
+function updateGoldMarks() {
+  const v = Math.max(speed, 5);
+  for (let i = goldMarks.length - 1; i >= 0; i--) {
+    const m = goldMarks[i], dt = (m.s - carS) / v;
+    if (!m.live() || dt < -0.3) { scene.remove(m.r); m.r.material.dispose(); goldMarks.splice(i, 1); continue; }
+    const k = Math.min(1, Math.max(0, dt / GOLD_APPROACH));
+    roadPoint(m.s, m.x, m.y, m.r.position); m.r.quaternion.copy(camera.quaternion);
+    m.r.scale.setScalar(m.size * (1 + 1.5 * k));
+    m.r.material.opacity = dt > GOLD_APPROACH * 1.4 ? 0 : 0.18 + (1 - k) * 0.55;
+    m.r.material.color.set(Math.abs(dt) <= 0.15 ? '#fff1c4' : '#ffd24a');   // flashes pale when it's time to tap
+  }
+}
+function goldPath(s, g) {
+  const back = s - Math.max(speed, 5) * 2.5;                         // whatever sits in the 2½ s just before this gold lantern
+  for (const k of kickers) if (!k.gold && k.state === 'pending' && k.s > back && k.s < s) {
+    k.gold = g; goldify(k.mesh.geometry);
+    addGoldMark(k.s, k.x, KICK_H + 0.9, 1.9, () => k.state === 'pending');
+  }
+  for (const h of holds) if (!h.gold && h.state === 'pending' && h.s1 > back && h.s0 < s) {
+    h.gold = g; goldify(h.mesh.geometry); h.base = GOLD_C.clone();
+    if (!h.linked) addGoldMark(h.s0, h.x, RAIL_Y + 0.7, 1.6, () => h.state === 'pending');
+  }
+}
+function goldBonus(label) {
+  const e = chainEntry('gold'); e.pts += 250; e.last = clock;
+  const c = tmpC2.set('#ffd24a').multiplyScalar(2);
+  for (let i = 0; i < 22; i++) sparkles.emit(car.position, (Math.random() - 0.5) * 7, 2 + Math.random() * 5, (Math.random() - 0.5) * 7, 0.8 + Math.random() * 0.5, 0.3, 0.12, 0.95, c);
+  SFX.gold(1); tagPop(label, '#ffd24a');
+}
+// seconds of song left after a beat at analysis time t is heard (the tutorial's song loops, so it never runs out)
+const goldRoom = t => !run || !run.duration || run.kind === 'tutorial' ? Infinity : run.start + run.duration + LOOKAHEAD - heardTime(t);
 function goldFor(t) {
   if (!run || (run.kind === 'tutorial' && !tutGold) || state !== 'playing') return null;
+  // the song is about to end: close the run on the lanterns already down (or drop it quietly if it's too short)
+  if (goldPlacing && goldRoom(t) < 3) { goldPlaced(goldPlacing, null); return null; }
   if (!goldPlacing && t >= goldNextAt && twistAt(carS + 300) < 0.01 && twistAt(carS + 700) < 0.01) {
-    goldPlacing = { need: run.kind === 'tutorial' ? 8 : 10 + Math.floor(Math.random() * 6), notes: [], hits: 0, failed: false, pending: null };
+    const need = run.kind === 'tutorial' ? 8 : 10 + Math.floor(Math.random() * 6);
+    if (goldRoom(t) < need * 1.2 + 6) return null;                     // not enough song left to finish one
+    goldPlacing = { need, notes: [], hits: 0, failed: false, pending: null };
     goldRuns.push(goldPlacing);
   }
   return goldPlacing;
@@ -3941,7 +4116,8 @@ function makeDemo(kind = 'sakura') {
 const LEVELS = [
   { id: 'momiji-borderline', name: 'Borderline', sub: 'Tame Impala', biome: 3, track: 'music/borderline.mp3', cls: 'momiji' },
   { id: 'sakura-untilthesun', name: 'Until The Sun Needs To Rise', sub: 'RÜFÜS DU SOL', biome: 0, track: 'music/until-the-sun.mp3', cls: 'sakura' },
-  { id: 'tokyo-squarewave', name: 'Square Wave', sub: 'The Voidz', biome: 2, track: 'music/square-wave.mp3', cls: 'night' },
+  { id: 'tokyo-squarewave', name: 'Square Wave', sub: 'The Voidz', biome: 2, track: 'music/square-wave.mp3', cls: 'night',
+    solos: [[90, 127], [206, 243]] },   // set by hand (seconds into the track): the analysis picked the wrong first solo
   { id: 3, name: 'Backseat', sub: 'Balu Brigada', biome: 7, track: 'music/backseat.mp3', cls: 'tanbo' },
   { id: 'rival-warmup', name: 'Rival Finale', sub: '', biome: 0, song: 'sakura', hidden: true },
 ];
@@ -4008,7 +4184,7 @@ async function startLevelInner(i) {
     src.start(trackStart);
     startGame('demo', src, `Level ${i + 1} · ${L.name}`, { level: i, duration: A.buffer.duration, beats: A.beats, bi: 0, trackStart,
       stop() { try { src.stop(); } catch {} },
-      soloAts: (A.solos || (A.solo ? [A.solo] : [])).map(so => [trackStart + so.t0, trackStart + so.t1, 60 / A.bpm]) });
+      soloAts: (L.solos ? L.solos.map(([t0, t1]) => ({ t0, t1 })) : A.solos || (A.solo ? [A.solo] : [])).map(so => [trackStart + so.t0, trackStart + so.t1, 60 / A.bpm]) });
     run.start = trackStart;
     return;
   }
@@ -4994,7 +5170,28 @@ function separateCars(list, lenOf, dt) {
     }
   }
 }
+// takedowns: come down out of big air (off a kicker or a rail) onto a car and it blows up — a chain skill, worth more
+// each time in the same chain, and you bounce back up off it (so you can chain them)
+let skyHigh = false;
+function stompTakedown(t) {
+  t.hit = true; t.vx = Math.sign(t.x - lateral || 1) * 10; t.v *= 0.3; t.spin = (Math.random() - 0.5) * 2;
+  hopV = Math.max(hopV, 7.5);                                              // bounce off its roof
+  explodeAt(t.mesh.position, false); shake = Math.max(shake, 0.5); rumble(0.8, 0.8, 220);
+  const e = chainEntry('takedown'); e.count = (e.count || 0) + 1; e.pts += 500 + 250 * Math.min(e.count - 1, 6); e.last = clock;
+  stats.stomps = (stats.stomps || 0) + 1;
+  tagPop(e.count > 1 ? `TAKEDOWN ×${e.count}!` : 'TAKEDOWN!', '#ff6a1a');
+}
+function jumpedOver(t) {
+  t.over = true;
+  const e = chainEntry('over'); e.count = (e.count || 0) + 1; e.pts += Math.round(200 + speed * 2); e.last = clock;
+  stats.jumpOvers = (stats.jumpOvers || 0) + 1; tagPop('JUMPED OVER!', '#7fe3ff');
+  const c = tmpC2.set('#7fe3ff').multiplyScalar(2);
+  for (let k = 0; k < 14; k++) sparkles.emit(car.position, (Math.random() - 0.5) * 5, -1 - Math.random() * 3, (Math.random() - 0.5) * 5, 0.6, 0.3, 0.1, 0.9, c);
+}
 function updateTraffic(dt) {
+  // how high the truck is off the road; big air (a kicker launch, or coming off a rail) arms a takedown until you land
+  const alt = hopY + grindK * (RAIL_Y - 0.05) + kickLift;
+  if (alt > 1.1 && kickLift === 0) skyHigh = true; else if (alt < 0.05) skyHigh = false;
   if (state !== 'playing') { if (traffic.length && state === 'menu') clearTraffic(); return; }
   if (run && run.kind === 'rails') return;                          // rail park: empty road
   if (finale) return;                                                // finale: just you and the rivals
@@ -5051,9 +5248,12 @@ function updateTraffic(dt) {
     const ds = t.s - carS, dx = t.x - lateral;
     // near miss: the car passes us (or we pass it) close alongside without touching
     if (!t.hit && t.prevDs !== undefined && Math.sign(ds) !== Math.sign(t.prevDs) && Math.abs(dx) >= 1.95 && Math.abs(dx) < 3.7) nearMiss();
+    // jumped over it: it passed right underneath while we were in the air (off a kicker, a hop, a rail's end)
+    if (!t.hit && !t.over && state === 'playing' && t.prevDs !== undefined && Math.sign(ds) !== Math.sign(t.prevDs) && Math.abs(dx) < 1.95 && hopY >= 0.6 && grindK < 0.5) jumpedOver(t);
     // passed cleanly: it went from ahead of us to behind (whether we overtook it or it came the other way)
     if (!t.hit && t.prevDs !== undefined && t.prevDs > 0 && ds <= 0) stats.passed = (stats.passed || 0) + 1;
     t.prevDs = ds;
+    if (!t.hit && !t.over && skyHigh && state === 'playing' && hopV < 0 && grindK < 0.5 && alt > 0.15 && alt < 1.6 && Math.abs(ds) < (t.mesh.userData.len / 2 + 1.0) && Math.abs(dx) < 1.9) { stompTakedown(t); continue; }   // came down on its roof
     if (!t.hit && dashingHard() && state === 'playing' && Math.abs(ds) < (t.mesh.userData.len / 2 + 2.0) && Math.abs(dx) < 1.95 && hopY < 0.6 && grindK < 0.5) {
       // dashed into it: it's the car that goes flying — a takedown, and a skill in your chain
       t.hit = true; t.vx = Math.sign(dx || 1) * 16; t.v *= 0.25; t.spin = (Math.random() - 0.5) * 2;
@@ -5248,6 +5448,9 @@ function updateChain(dt) {
   if (cl) rows.push([`clips ×${cl.count}${cl.great ? ` · ${cl.great} great` : ''}`, cl.pts, clock - (cl.last || 0) < 0.8]);
   const sm = chain.entries.smash;
   if (sm) rows.push([`dash smash ×${sm.count}`, sm.pts, clock - (sm.last || 0) < 0.8]);
+  const td = chain.entries.takedown, ov = chain.entries.over;
+  if (td) rows.push([`takedown ×${td.count}`, td.pts, clock - (td.last || 0) < 0.8]);
+  if (ov) rows.push([`jumped over ×${ov.count}`, ov.pts, clock - (ov.last || 0) < 0.8]);
   const ai = chain.entries.air;
   if (ai) rows.push([`air ×${ai.count || 0}`, ai.pts, clock - (ai.last || 0) < 0.8]);
   if (gr) {
@@ -5447,7 +5650,7 @@ function judge(n) {
 
 function updateNotes(now, dt) {
   pulseNeon();
-  updateGold();
+  updateGold(); updateGoldMarks();
   updateHolds(dt);
   updateKickers(dt);
   for (let i = notes.length - 1; i >= 0; i--) {
@@ -6693,11 +6896,18 @@ function updateWorld(dt, now) {
   }
   if (shake > 0.01) { camera.position.x += (Math.random() - 0.5) * shake; camera.position.y += (Math.random() - 0.5) * shake * 0.5; shake *= Math.exp(-dt * 5); }
   camera.lookAt(camLook);
-  if (grooveK > 0.01 && state === 'playing') camera.rotateZ(Math.sin(clock * 0.7) * 0.045 * grooveK + Math.sin(clock * 1.9) * 0.012 * grooveK);   // the horizon drifts as the trip deepens
+  if (grooveK > 0.01 && state === 'playing') {   // the horizon moves as the trip deepens — each trip style has its own sway
+    const k = grooveK * 0.55 * (tripSwap ? 0.3 : 1);   // kept gentle so the road stays readable
+    camera.rotateZ(tripStyle === 1 ? Math.sin(clock * 0.35) * 0.07 * k                                            // kaleidoscope: a slow, wide roll
+      : tripStyle === 2 ? (Math.sin(clock * 0.9) * 0.02 + (Math.random() - 0.5) * 0.012 * (1 + vis.kick * 3)) * k     // VHS: a jittery handheld wobble
+      : tripStyle === 3 ? Math.sin(clock * 0.5) * 0.03 * k + 0.04 * k                                              // thermal: a held Dutch tilt
+      : tripStyle === 4 ? Math.sin(clock * 1.4) * 0.02 * k                                                         // tunnel: barely any (the lens pumps instead)
+      : Math.sin(clock * 0.7) * 0.045 * k + Math.sin(clock * 1.9) * 0.012 * k);
+  }
   tutCamBlendOut(dt);
   // keep at least ~58° horizontally so tall/portrait windows still see the countryside
   const minV = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(29)) / camera.aspect));
-  camera.fov = lerp(camera.fov, Math.max(32, minV) + speed * 0.06 + vis.kick * (0.4 + 5 * grooveK) + Math.sin(clock * 1.1) * 2 * grooveK + Math.abs(slide) * 3 - 8 * (1 - warp), 1 - Math.exp(-dt * (4 + 6 * grooveK)));   // and the lens breathes with the beat
+  camera.fov = lerp(camera.fov, Math.max(32, minV) + speed * 0.06 + vis.kick * (0.4 + (tripStyle === 4 ? 9 : 5) * grooveK) + Math.sin(clock * 1.1) * (tripStyle === 4 ? 4 : 2) * grooveK + Math.abs(slide) * 3 - 8 * (1 - warp), 1 - Math.exp(-dt * (4 + 6 * grooveK)));   // and the lens breathes with the beat
   camera.updateProjectionMatrix();
 
   // light, sky, fog
@@ -6753,7 +6963,14 @@ function updateWorld(dt, now) {
   const scale = renderer.getDrawingBufferSize(_v).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
   for (const m of pointMats) m.uniforms.uScale.value = scale;
   grade.uniforms.time.value = clock % 100;
-  { const tripOn = state === 'playing' || state === 'wrecking' ? grooveK : 0; grade.uniforms.trip.value = lerp(grade.uniforms.trip.value, tripOn, 0.15); /* straight off the groove scale: 50% at 100k, 100% at 400k */ grade.uniforms.kick.value = vis.kick || 0; }
+  { const want = state === 'playing' || state === 'wrecking' ? grooveK : 0, tv = grade.uniforms.trip.value;
+    if (want < 0.02 && tv < 0.01) tripArmed = true;   /* the last trip has drained: the next chain gets a fresh look */
+    if (tripArmed && want >= 0.02 && tv < 0.01) { rollTripStyle(); tripArmed = false; }
+    tripDeepT = want > 0.25 ? tripDeepT + dt : Math.max(0, tripDeepT - dt);
+    if (tripDeepT > 28) tripSwap = true;   /* long deep trip: breathe out, swap looks, breathe back in */
+    if (tripSwap && tv < 0.01) { rollTripStyle(); tripSwap = false; }
+    grade.uniforms.tmode.value = tripStyle;
+    const tripOn = tripSwap ? 0 : want; grade.uniforms.trip.value = lerp(grade.uniforms.trip.value, tripOn, 0.15); /* straight off the groove scale: 50% at 100k, 100% at 400k */ grade.uniforms.kick.value = vis.kick || 0; }
   updateEdgeLines();
   for (const c of clips) if (c.mat && !c.judged) c.mat.opacity = 0.6 + 0.4 * Math.min(1, vis.kick + 0.2 * Math.sin(clock * 6));
   fieldTime.value = clock % 1000;
