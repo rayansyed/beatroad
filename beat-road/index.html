@@ -419,6 +419,7 @@
   #tutText mark, .tcText mark { background:rgba(255,210,63,.18); color:var(--pop-y); box-shadow:inset 0 -2px 0 var(--pop-o); }
   #tut.done { box-shadow:6px 6px 0 var(--pop-g), 6px 6px 0 3px var(--ink-k); }
   #fadeCut { background:#141218; }
+  .padFocus { outline:4px solid var(--pop-y) !important; outline-offset:3px; }
   #bossBar { position:absolute; top:64px; left:50%; transform:translateX(-50%); width:min(420px, 70vw); display:none; text-align:center; }
   #bossBar.on { display:block; }
   #bossBar .bbName { font-weight:900; font-size:14px; letter-spacing:.2em; text-transform:uppercase; color:#fff; text-shadow:var(--outline), 3px 3px 0 var(--pop-c); margin-bottom:5px; }
@@ -550,7 +551,7 @@
       </ol>
       Spotify doesn't let web apps read the raw audio of a track, so the game captures the tab's audio instead. Skip songs in Spotify as usual. The drive continues until you stop sharing.
     </details>
-    <div class="keys"><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> steer · double-tap ← / → to dash sideways, ↑ to dash forward · <kbd>↑</kbd> / <kbd>W</kbd> throttle · <kbd>↓</kbd> / <kbd>S</kbd> brake (Drift Mode &amp; Rival Finale) · hold <kbd>Space</kbd> in corners to drift, tap it again where an S-bend switches to transition · tap <kbd>Space</kbd> at a rail to grind (it holds on by itself — tap again to transfer or hop off), or on a ramp lip for air · <kbd>P</kbd> / <kbd>Esc</kbd> pause · camera: mouse wheel or <kbd>-</kbd> <kbd>=</kbd> zoom, right-drag or <kbd>Q</kbd> <kbd>E</kbd> / <kbd>R</kbd> <kbd>F</kbd> to orbit and tilt, <kbd>C</kbd> resets · on touch screens, hold the left or right side to steer, add a second finger to drift, lift and re-tap it to transition</div>
+    <div class="keys"><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> steer · double-tap ← / → to dash sideways, ↑ to dash forward · <kbd>↑</kbd> / <kbd>W</kbd> throttle · <kbd>↓</kbd> / <kbd>S</kbd> brake (Drift Mode &amp; Rival Finale) · hold <kbd>Space</kbd> in corners to drift, tap it again where an S-bend switches to transition · tap <kbd>Space</kbd> at a rail to grind (it holds on by itself — tap again to transfer or hop off), or on a ramp lip for air · <kbd>P</kbd> / <kbd>Esc</kbd> pause · camera: mouse wheel or <kbd>-</kbd> <kbd>=</kbd> zoom, right-drag or <kbd>Q</kbd> <kbd>E</kbd> / <kbd>R</kbd> <kbd>F</kbd> to orbit and tilt, <kbd>C</kbd> resets · on touch screens, hold the left or right side to steer, add a second finger to drift, lift and re-tap it to transition · <b>Xbox controller</b>: left stick steers, <kbd>A</kbd> = Space, <kbd>RT</kbd> / <kbd>LT</kbd> throttle / brake, <kbd>LB</kbd> <kbd>RB</kbd> dash sideways, <kbd>LB</kbd> + <kbd>RB</kbd> together dash forward, <kbd>B</kbd> skip tutorial step, <kbd>☰</kbd> pause, right stick orbits the camera · D-pad + <kbd>A</kbd> / <kbd>B</kbd> in menus</div>
     <div id="err"></div>
   </div>
 </div>
@@ -2711,7 +2712,7 @@ const TRICKS = {
   crooked: { name: 'Crooked',    yaw: 0.45,  pitch: -0.16, roll: 0.12,  x: 1.6 },
 };
 const grindPose = { yaw: 0, pitch: 0, roll: 0 };
-const trickInput = () => held.left ? 'boardL' : held.right ? 'boardR' : held.down ? 'crooked' : held.up ? 'nose' : null;
+const trickInput = () => held.left || held.padDir === 'left' ? 'boardL' : held.right || held.padDir === 'right' ? 'boardR' : held.down || held.padDir === 'down' ? 'crooked' : held.up || held.padDir === 'up' ? 'nose' : null;
 // grind combo: every new grind you switch into, every transfer and every flip joins the chain's grind entry. Each one
 // is worth more than the last (25, 50, 75 … up to 200 pts), and the card shows the combo as it builds:
 // 50-50 › Boardslide › Transfer. Flicking back to a grind you've already done in this combo only scores a token 5.
@@ -4029,7 +4030,7 @@ const DASH_F = 26, DASH_F_CD = 0.7;
 let dashF = 0, dashFCd = 0;
 function dashForward() {
   if (state !== 'playing' || dashFCd > 0 || tougeLocked || drifting || spinT > 0 || grindHold() || trickOut) return;
-  dashF = DASH_F; dashFCd = DASH_F_CD; dashFx = Math.max(dashFx, 0.3);
+  dashF = DASH_F; dashFCd = DASH_F_CD; dashFx = Math.max(dashFx, 0.3); rumble(0.2, 0.4, 110);
   fx.punch = Math.max(fx.punch, 0.05); shake = Math.max(shake, 0.12);
   stats.dashes = (stats.dashes || 0) + 1; (stats.dashDirs = stats.dashDirs || {}).f = true;
   SFX.dash?.();
@@ -4037,7 +4038,7 @@ function dashForward() {
 function dash(dir) {
   if (state !== 'playing' || dashCd > 0 || drifting || spinT > 0 || (run && run.kind === 'drift') || grindHold() || trickOut) return;
   if (Math.abs(lateral) > 5.2 && Math.sign(lateral) === dir) return;   // already against that wall
-  dashV = dir * DASH_V; dashCd = DASH_CD; dashFx = 0.28;
+  dashV = dir * DASH_V; dashCd = DASH_CD; dashFx = 0.28; rumble(0, 0.35, 90);
   stats.dashes = (stats.dashes || 0) + 1; (stats.dashDirs = stats.dashDirs || {})[dir] = true;
   SFX.dash?.();
 }
@@ -4286,7 +4287,7 @@ function updateAngleGauge() {
 }
 function damage(amount) {
   if (state !== 'playing') return;
-  setHealth(health - amount); musicSkip(amount);
+  setHealth(health - amount); musicSkip(amount); rumble(Math.min(1, 0.3 + amount * 0.04), 0.5, 160 + amount * 10);
   for (const g of goldRuns) if (!g.failed && !g.done) goldFail(g, 'gold run lost');   // any hit (car, wall) voids a gold run in progress
   speed = Math.max(MIN_SPEED, speed * (1 - Math.min(0.5, amount * 0.02)));   // the hit scrubs speed: car ~44% (22 dmg), wall scrape ~14%
   if (run && run.kind === 'tutorial') setHealth(Math.max(health, 25));   // the tutorial never wrecks you
@@ -4571,7 +4572,7 @@ function updateBoss(dt) {
         if (g === 'parry') {                                             // sent back!
           const back = makeMissile(); back.position.copy(car.position);
           b.missiles.push({ g: back, s: carS + 1.5, x: lateral, y: 1.2, vx: 0, vy: 0, vr: -45, back: true, t: 0, flashT: 0 });
-          guardFlash = 1; guardT = 0; guardCd = 0; SFX.parry(); flash('PARRY', '#35e0ff'); parryReward(); tagPop('RETURN TO SENDER', '#35e0ff'); fx.flash = 0.4; fx.tint.set('#35e0ff');
+          guardFlash = 1; guardT = 0; guardCd = 0; SFX.parry(); flash('PARRY', '#35e0ff'); parryReward(); rumble(0.8, 1, 220); tagPop('RETURN TO SENDER', '#35e0ff'); fx.flash = 0.4; fx.tint.set('#35e0ff');
           stats.parries = (stats.parries || 0) + 1;
           continue;
         }
@@ -4762,7 +4763,7 @@ function parry(r, toward) {
   r.boom = true; r.airV = 9; r.air = 0;
   takedown(r, 'parry');
   const bonus = 250 * mult() * bonusMult(); stats.score += bonus; stats.parries = (stats.parries || 0) + 1; updateHud();
-  parryReward(); tagPop('PARRY!', '#ffffff'); flash('PARRY', '#35e0ff');
+  parryReward(); rumble(1, 1, 260); tagPop('PARRY!', '#ffffff'); flash('PARRY', '#35e0ff');
   SFX.parry(); SFX.boom();
   fx.flash = 0.7; fx.punch = 0.12; fx.tint.set('#ffb347'); shake = Math.max(shake, 1);
   const p = r.mesh.position;
@@ -4792,6 +4793,7 @@ function takedown(r, how) {
   r.vx = (how === 'rear' ? (Math.random() - 0.5) * 8 : Math.sign(r.x - lateral || 1) * 14); r.v *= how === 'rear' ? 0.45 : 0.7;
   finale.downs++; stats.takedowns = (stats.takedowns || 0) + 1; showTakedowns(); bumpEl('takedowns');
   const pts = 400 * mult() * bonusMult(); stats.score += pts; updateHud();
+  rumble(0.7, 0.6, 200);
   if (how !== 'parry') tagPop(how === 'wall' ? 'WALLED!' : 'TAKEDOWN!', '#ff6a1a'); SFX.perfect(); shake = Math.max(shake, 0.6);
   // a takedown patches you up a little: +12 health
   heal(12);
@@ -5472,27 +5474,118 @@ const TAP_MIN = 120;   // ms
 const held = { left: false, right: false, up: false, down: false, pointer: 0, drift: false, touches: 0, tapUntil: { left: 0, right: 0 } };
 const keySide = k => ['ArrowLeft', 'a', 'A'].includes(k) ? 'left' : ['ArrowRight', 'd', 'D'].includes(k) ? 'right'
   : ['ArrowUp', 'w', 'W'].includes(k) ? 'up' : ['ArrowDown', 's', 'S'].includes(k) ? 'down' : null;
-addEventListener('keyup', e => { const s = keySide(e.key); if (s) held[s] = false; if (e.code === 'Space') held.hold = false; if (e.code === 'Space') { held.drift = false; held.goldTap = false; } });
-addEventListener('blur', () => { held.left = held.right = held.up = held.down = held.drift = held.hold = false; held.pointer = 0; held.touches = 0; });
+// the actions behind the keys, shared with the controller: a direction pressed / released, and the action button
+// (Space / A: drift, transitions, grind, transfers, ramps, gold taps, block / parry)
+function sideDown(side, repeat = false) {
+  held[side] = true;
+  if (!repeat && held.tapUntil[side] !== undefined) held.tapUntil[side] = performance.now() + TAP_MIN;
+  // double-tap ← or → : dash sideways · double-tap ↑ : dash forward
+  if (!repeat && side === 'up') { const t = performance.now(); if (t - lastSideTap.up < DASH_TAP) { dashForward(); lastSideTap.up = 0; } else lastSideTap.up = t; }
+  if (!repeat && (side === 'left' || side === 'right')) { const t = performance.now(); if (t - (lastSideTap[side] || 0) < DASH_TAP) { dash(side === 'left' ? -1 : 1); lastSideTap[side] = 0; } else lastSideTap[side] = t; }
+}
+function sideUp(side) { held[side] = false; }
+function actionDown(repeat = false) {
+  if (state === 'tutfocus') { if (!repeat) tutContinue(); return; }
+  if (!repeat) { held.holdTap = performance.now(); raiseGuard(); } held.hold = true;
+  if (!repeat && !held.drift && goldPress()) held.goldTap = true; else if (!held.goldTap) held.drift = true;
+}
+function actionUp() { held.hold = false; held.drift = false; held.goldTap = false; }
+addEventListener('keyup', e => { const s = keySide(e.key); if (s) sideUp(s); if (e.code === 'Space') actionUp(); });
+addEventListener('blur', () => { held.left = held.right = held.up = held.down = held.drift = held.hold = false; held.pointer = 0; held.touches = 0; held.padX = 0; held.padDir = null; });
 addEventListener('keydown', e => {
   if (state === 'tutfocus') { if (!e.repeat && (e.key === 'Enter' || e.code === 'Space')) tutContinue(); e.preventDefault(); return; }
   const side = keySide(e.key);
-  if (side) {
-    held[side] = true;
-    if (!e.repeat && held.tapUntil[side] !== undefined) held.tapUntil[side] = performance.now() + TAP_MIN;
-    // double-tap ← or → : dash sideways · double-tap ↑ : dash forward
-    if (!e.repeat && side === 'up') { const t = performance.now(); if (t - lastSideTap.up < DASH_TAP) { dashForward(); lastSideTap.up = 0; } else lastSideTap.up = t; }
-    if (!e.repeat && (side === 'left' || side === 'right')) { const t = performance.now(); if (t - (lastSideTap[side] || 0) < DASH_TAP) { dash(side === 'left' ? -1 : 1); lastSideTap[side] = 0; } else lastSideTap[side] = t; }
-    e.preventDefault(); return;
-  }
-  if (e.code === 'Space') { if (!e.repeat) { held.holdTap = performance.now(); raiseGuard(); } held.hold = true; }
-  if (e.code === 'Space') { if (!e.repeat && !held.drift && goldPress()) held.goldTap = true; else if (!held.goldTap) held.drift = true; e.preventDefault(); return; }
+  if (side) { sideDown(side, e.repeat); e.preventDefault(); return; }
+  if (e.code === 'Space') { actionDown(e.repeat); e.preventDefault(); return; }
   if (e.repeat) return;
   if (['Escape', 'p', 'P'].includes(e.key)) setPaused(state === 'playing');
   else if (e.key === 'Enter' && run && run.kind === 'tutorial') tutSkip();
   else if (e.key === '[' && run) nudgeOffset(-10);
   else if (e.key === ']' && run) nudgeOffset(10);
 });
+// ---------------------------------------------------------------- Xbox (and other standard-layout) controllers
+// Driving: left stick steers (analog), D-pad also steers · A = Space (drift, transitions, grind, transfers, ramps, gold
+// taps, block / parry) · RT throttle, LT brake · LB / RB dash left / right, LB + RB together
+// dash forward · B skips a tutorial step · Menu pauses · right stick orbits the camera, View resets it.
+// In menus: D-pad / left stick moves between buttons, A presses, B goes back. Hits, parries and blasts rumble.
+const PAD = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, VIEW: 8, MENU: 9, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
+const pad = { prev: [], idx: -1, navT: 0, focus: null, bump: null }, BUMP_WIN = 0.07;
+const padPressed = (b, i) => !!b[i] && (b[i].pressed || b[i].value > 0.5);
+addEventListener('gamepadconnected', e => { pad.idx = e.gamepad.index; if (state === 'playing') tagPop('controller connected', '#fff6e4'); else showErr('Controller connected: ' + e.gamepad.id.replace(/\(.*\)/, '').trim()); setTimeout(() => showErr(''), 2500); });
+addEventListener('gamepaddisconnected', e => { { pad.idx = -1; pad.prev = []; held.padX = 0; held.padDir = null; actionUp(); for (const s of ['left', 'right', 'up', 'down']) held[s] = false; } });
+function rumble(strong, weak, ms) {
+  if (!navigator.getGamepads) return;
+  for (const gp of navigator.getGamepads()) { if (!gp || !gp.connected) continue; try { gp.vibrationActuator?.playEffect('dual-rumble', { duration: ms, strongMagnitude: strong, weakMagnitude: weak }); } catch {} }
+}
+function pollPad(dt) {
+  if (!navigator.getGamepads) return;
+  // listen to every connected controller at once: the same pad often shows up twice (cable + Bluetooth, or a phantom
+  // slot), and inputs only arrive on one of them. Buttons from all of them are merged; each stick axis takes whichever
+  // pad is pushing it hardest
+  const pads = [...navigator.getGamepads()].filter(p => p && p.connected);
+  if (!pads.length) return;
+  const nb = Math.max(...pads.map(p => p.buttons.length)), na = Math.max(...pads.map(p => p.axes.length));
+  const gp = { buttons: Array.from({ length: nb }, (_, i) => { let v = 0, pr = false; for (const p of pads) { const x = p.buttons[i]; if (x) { pr = pr || x.pressed; v = Math.max(v, x.value); } } return { pressed: pr, value: v }; }),
+               axes: Array.from({ length: na }, (_, i) => pads.reduce((m, p) => Math.abs(p.axes[i] || 0) > Math.abs(m) ? p.axes[i] : m, 0)) };
+  const b = gp.buttons, prev = pad.prev, now = i => padPressed(b, i), was = i => !!prev[i], down = i => now(i) && !was(i), up = i => !now(i) && was(i);
+  const dz = v => Math.abs(v) < 0.18 ? 0 : Math.sign(v) * (Math.abs(v) - 0.18) / 0.82;
+  const lx = dz(gp.axes[0] || 0), ly = dz(gp.axes[1] || 0), rx = dz(gp.axes[2] || 0), ry = dz(gp.axes[3] || 0);
+  const inGame = run && (state === 'playing' || state === 'wrecking' || state === 'tutfocus');
+  if (inGame) {
+    held.padX = Math.sign(lx) * Math.pow(Math.abs(lx), 1.4);              // a gentle curve: fine control near centre
+    held.padDir = Math.abs(lx) > 0.6 ? (lx < 0 ? 'left' : 'right') : Math.abs(ly) > 0.6 ? (ly < 0 ? 'up' : 'down') : null;
+    // D-pad behaves exactly like the arrow keys; the triggers are plain throttle / brake (no double-pull dash)
+    for (const [i, side] of [[PAD.LEFT, 'left'], [PAD.RIGHT, 'right'], [PAD.UP, 'up'], [PAD.DOWN, 'down'], [PAD.RT, 'up'], [PAD.LT, 'down']]) {
+      const trigger = i === PAD.RT || i === PAD.LT;
+      if (down(i)) { if (trigger) held[side] = true; else sideDown(side); }
+      else if (up(i) && !(side === 'up' ? now(PAD.UP) || now(PAD.RT) : side === 'down' ? now(PAD.DOWN) || now(PAD.LT) : false)) sideUp(side);
+    }
+    if (down(PAD.A)) actionDown(); else if (up(PAD.A)) actionUp();
+    // bumpers: LB / RB dash left / right; both together dash forward. A press waits a moment (BUMP_WIN) for the other
+    // bumper, so pressing both doesn't fire a side dash first
+    if (down(PAD.LB) || down(PAD.RB)) {
+      const dir = down(PAD.LB) && down(PAD.RB) ? 0 : down(PAD.LB) ? -1 : 1;
+      if (dir === 0 || (pad.bump && pad.bump.dir === -dir)) { pad.bump = null; dashForward(); }
+      else pad.bump = { dir, t: BUMP_WIN };
+    }
+    if (pad.bump && (pad.bump.t -= dt) <= 0) { dash(pad.bump.dir); pad.bump = null; }
+    if (down(PAD.B) && run.kind === 'tutorial') tutSkip();
+    if (down(PAD.MENU) && state === 'playing') setPaused(true);
+    if (rx || ry) setCam({ yaw: camUser.yaw + rx * dt * 1.6, tilt: camUser.tilt - ry * dt * 0.8 });
+    if (down(PAD.VIEW)) setCam(CAM_DEFAULT);
+  } else {
+    held.padX = 0; held.padDir = null;
+    if (held.hold && !now(PAD.A)) actionUp();
+    padMenu(b, down, ly, dt);
+  }
+  pad.prev = b.map(x => x.pressed || x.value > 0.5);
+}
+// menus with the controller: move a highlight over whatever buttons are on screen, A presses, B goes back
+function padMenu(b, down, ly, dt) {
+  const layer = ['pause', 'results', 'campaign', 'menu'].map($).find(el => el && !el.classList.contains('hidden'));
+  if (!layer) return;
+  if (state === 'paused' && (down(PAD.MENU) || down(PAD.B))) { setPaused(false); return; }
+  const items = [...layer.querySelectorAll('button, label.choice, input[type=range]')].filter(el => el.offsetParent && !el.classList.contains('hidden') && !el.classList.contains('locked') && !el.disabled);
+  if (!items.length) return;
+  let i = items.indexOf(pad.focus);
+  if (i < 0) i = 0;
+  const dir = down(PAD.DOWN) || (ly > 0.5 && pad.navT <= 0) ? 1 : down(PAD.UP) || (ly < -0.5 && pad.navT <= 0) ? -1 : 0;
+  pad.navT = Math.abs(ly) > 0.5 ? (dir ? 0.22 : pad.navT - dt) : 0;
+  if (dir || items[i] !== pad.focus) { i = (i + dir + items.length) % items.length; setPadFocus(items[i]); }
+  const f = pad.focus;
+  if (f && f.type === 'range' && (down(PAD.LEFT) || down(PAD.RIGHT))) { f.value = +f.value + (down(PAD.RIGHT) ? 1 : -1) * (+f.step || 1); f.dispatchEvent(new Event('input', { bubbles: true })); }
+  if (down(PAD.A) && f && f.type !== 'range') f.click();
+  if (down(PAD.B)) {
+    const back = ['btnBriefBack', 'btnCampBack', 'btnMenu'].map($).find(el => el && el.offsetParent && layer.contains(el));
+    if (back) back.click();
+  }
+}
+function setPadFocus(el) {
+  if (pad.focus) pad.focus.classList.remove('padFocus');
+  pad.focus = el; el.classList.add('padFocus');
+  try { el.focus({ preventScroll: true }); } catch {}
+  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
 // ---------------------------------------------------------------- camera controls (saved per browser)
 const CAM_DEFAULT = { dist: 1, yaw: 0, tilt: 1 };
 const camUser = { ...CAM_DEFAULT };
@@ -6313,7 +6406,7 @@ function updateWorld(dt, now) {
   // slides it steadily and a tap gives a clear nudge. A tap always counts for at least TAP_MIN seconds.
   const tnow = performance.now();
   const r = held.right || tnow < held.tapUntil.right, l = held.left || tnow < held.tapUntil.left;
-  let input = (r ? 1 : 0) - (l ? 1 : 0) + held.pointer;
+  let input = (r ? 1 : 0) - (l ? 1 : 0) + held.pointer + (held.padX || 0);   // keys, touch, and the controller's stick (analog)
   if (state === 'menu' && !parked) input = (Math.sin(idleT * 0.25) * 3.5 - lateral) * 0.25 - latVel * 0.12;   // gentle autopilot
   if (state !== 'playing' && state !== 'menu') input = 0;
   input = Math.max(-1, Math.min(1, input));
@@ -6719,6 +6812,7 @@ const tagV = new THREE.Vector3();
 function frame() {
   requestAnimationFrame(frame);
   const t = performance.now(), dtReal = Math.min(0.05, (t - lastT) / 1000); lastT = t;
+  pollPad(dtReal);
   // crash-cam slow motion (final takedown): the game runs at a fraction of real time for a moment (the music doesn't —
   // the level's over, so nothing needs to stay in sync)
   if (crashCam && state === 'playing') { crashCam.t -= dtReal; if (crashCam.t <= 0) crashCam = null; }
