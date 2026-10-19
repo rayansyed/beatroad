@@ -164,7 +164,7 @@
   #progress { position:absolute; top:0; left:0; right:0; height:3px; background:rgba(255,255,255,.18); }
   #progressFill { height:100%; width:0; background:#fffaf0; opacity:.85; }
   /* drift zone heads-up: touge-striped banner that slides in a few hundred metres before a 峠 */
-  .roadBanner { position:absolute; top:31%; left:50%; transform:translate(-50%, -12px); min-width:min(560px, 86vw); text-align:center; color:#fff; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; }
+  .roadBanner { position:absolute; top:max(72px, 8%); left:50%; transform:translate(-50%, -12px); min-width:min(560px, 86vw); text-align:center; color:#fff; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; }
   .roadBanner.on { opacity:1; transform:translate(-50%, 0); }
   .roadBanner.on .zbText { animation:zbPulse .9s ease-in-out infinite; }
   .roadBanner .zbStripe { display:none; }
@@ -310,7 +310,7 @@
 
   /* banners: a slanted hazard slab with huge outlined lettering */
   .roadBanner .zbStripe { display:block; height:12px; margin:0 auto; width:86%; background:repeating-linear-gradient(-45deg, var(--pop-y) 0 14px, var(--ink-k) 14px 28px); box-shadow:0 0 0 2px var(--ink-k); transform:skewX(-14deg); }
-  .roadBanner .zbText { margin:6px 0 2px; font-weight:900; font-size:clamp(26px, 5.4vw, 52px); letter-spacing:.04em; color:#fff; text-shadow:var(--outline), 5px 6px 0 var(--pop-r), 6px 7px 0 var(--ink-k); }
+  .roadBanner .zbText { margin:6px 0 2px; font-weight:900; font-size:clamp(22px, 4vw, 40px); letter-spacing:.04em; color:#fff; text-shadow:var(--outline), 5px 6px 0 var(--pop-r), 6px 7px 0 var(--ink-k); }
   .roadBanner .zbSub { margin-bottom:6px; font-weight:900; text-shadow:var(--outline); color:var(--pop-y); }
   @keyframes zbPulse { 50% { color:var(--pop-y); } }
 
@@ -349,6 +349,10 @@
 
   /* chain card: text scales down (--cs) as skills pile up, so the whole chain always fits */
   #chainRows { --cs:1; max-width:300px; }
+  /* a long chain spreads sideways into two columns instead of stacking up the screen; the trick list runs full width */
+  #chainRows.wide { max-width:600px; display:grid; grid-template-columns:1fr 1fr; column-gap:18px; }
+  #chainRows.wide .r { font-size:calc(13px * var(--cs)); gap:10px; }
+  #chainRows.wide .r.tricks { grid-column:1 / -1; }
   #chainRows .r { font-size:calc(15px * var(--cs)); line-height:1.4; }
   #chainRows .r.tricks { font-size:calc(12px * var(--cs)); white-space:normal; text-align:left; }
   #chainRows .r.tricks .k { flex:1; min-width:0; }
@@ -5251,7 +5255,9 @@ function updateChain(dt) {
     if (gr.tricks?.length) rows.push([gr.tricks.join(' › '), gr.comboPts || 0, clock - (gr.last || 0) < 0.8, 'tricks']);   // every trick in the combo
   }
   // everything in the chain stays on the card: the more there is, the smaller the text, so the card keeps its size
-  const trickLen = gr && gr.tricks ? gr.tricks.join(' › ').length : 0, lines = rows.length + Math.floor(trickLen / 34);
+  const wide = rows.filter(r => r[3] !== 'tricks').length > 3;                // 4+ skills: two columns
+  $('chainRows').classList.toggle('wide', wide);
+  const trickLen = gr && gr.tricks ? gr.tricks.join(' › ').length : 0, lines = (wide ? Math.ceil(rows.length / 2) : rows.length) + Math.floor(trickLen / (wide ? 70 : 34));
   $('chainRows').style.setProperty('--cs', Math.max(0.7, Math.min(1, 1 - (lines - 5) * 0.05)).toFixed(3));
   $('chainRows').innerHTML = rows.map(([k, v, on, cls]) => `<div class="r${on ? ' on' : ''}${cls ? ' ' + cls : ''}"><span class="k">${k}</span><span class="v">${Math.round(v).toLocaleString()}</span></div>`).join('');
   $('chainMult').textContent = 'chain ×' + chainMult().toFixed(1) + (bonusT > 0 ? ' · ×2' : '');
@@ -6861,7 +6867,10 @@ function frame() {
     // ahead. It follows the truck sideways, steps left of the gauge cluster, and only sits on top of the cluster when
     // the screen's too narrow for both side by side
     {
-      const card = $('chain'), w = card.offsetWidth, h = card.offsetHeight, cl = $('cluster').getBoundingClientRect();
+      const cl = $('cluster').getBoundingClientRect(), rowsEl = $('chainRows');
+      // a two-column chain only gets as wide as the space left of the gauges, so it can stay down at the bottom
+      rowsEl.style.maxWidth = rowsEl.classList.contains('wide') && cl.left > 360 ? Math.min(600, cl.left - 70) + 'px' : '';
+      const card = $('chain'), w = card.offsetWidth, h = card.offsetHeight;
       let x = Math.max(16 + w / 2, Math.min(innerWidth - 16 - w / 2, tagX)), bottom = innerHeight - 14;
       if (x + w / 2 > cl.left - 12 && bottom > cl.top) {
         const xl = cl.left - 12 - w / 2;
