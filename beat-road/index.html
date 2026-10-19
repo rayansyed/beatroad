@@ -1043,10 +1043,10 @@ const grade = new ShaderPass({
       // 4 sunset tunnel, 5 pop duotone
       vec2 uv = vUv; int m = int(tmode + 0.5); float ar = res.x / res.y;
       // the play lane: the road from the horizon down to the truck, where the lanterns, rails and traffic are. The trip
-      // stays mostly out of it (warps, colour shifts and glows all fade to ~30% there) and plays out in the scenery round it
+      // stays mostly out of it (warps, colour shifts and glows all fade to ~25% there) and plays out in the scenery round it
       float laneW = 0.07 + 0.3 * clamp((0.7 - vUv.y) / 0.7, 0.0, 1.0);
       float lane = (1.0 - smoothstep(laneW, laneW + 0.13, abs(vUv.x - 0.5))) * (1.0 - smoothstep(0.66, 0.8, vUv.y));
-      float tw = trip * (1.0 - 0.7 * lane);
+      float tw = trip * (1.0 - 0.75 * lane);
       if (tw > 0.001) {
         if (m == 1) {
           // the outer screen folds into eight mirrored wedges that turn slowly; the middle (the road ahead) stays put
