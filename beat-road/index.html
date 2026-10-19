@@ -949,7 +949,7 @@ function roadPoint(s, off = 0, up = 0, out = new THREE.Vector3()) {
     THREE.ShaderChunk[k] = THREE.ShaderChunk[k].replace('vec3 irradiance = dotNL * directLight.color;', toon);
   }
 }
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });   // the scene renders into the composer's targets: canvas MSAA would only cost bandwidth
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1082,8 +1082,8 @@ const grade = new ShaderPass({
       }
       vec4 c = vec4(0.0);
       // radial zoom punch (transitions)
-      for (int i = 0; i < 8; i++) c += texture2D(tDiffuse, uv - d * fxPunch * float(i) / 7.0);
-      c /= 8.0;
+      if (fxPunch > 0.0005) { for (int i = 0; i < 8; i++) c += texture2D(tDiffuse, uv - d * fxPunch * float(i) / 7.0); c /= 8.0; }
+      else c = texture2D(tDiffuse, uv);                              // no punch: one tap, not eight
       // …and the colours split apart (red out, blue in), wider on the beat
       if (tw > 0.001) {
         float ca = tw * 0.012 * (1.0 + kick * 1.6);
@@ -1676,12 +1676,44 @@ const TCOLS = [7, 8.5, 10.5, 13, 17, 22, 29, 38, 50, 65, 85, 110, 135, 165];
 const LEFT_COLS = TCOLS.map(v => -v).reverse(), RIGHT_COLS = TCOLS;
 const dummy = new THREE.Object3D();
 const mesh = (geo, mat, cast = false, recv = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = cast; m.receiveShadow = recv; return m; };
+// GPU instancing across chunks: every (geometry, material) pair — each tree type, trunks, posts, poles, lanterns —
+// has ONE InstancedMesh for the whole world. A chunk takes slots in it when it's built and hands them back when it's
+// dropped (a freed slot is scaled to nothing until it's reused), so the draw calls don't multiply with the number of
+// chunks in view. instanced() returns a placeholder for the chunk group that remembers its slots.
+const IPOOL = new Map(), _zeroM = new THREE.Matrix4().makeScale(0, 0, 0), _poolWhite = new THREE.Color(1, 1, 1);
+function growPool(P, cap) {
+  const im = new THREE.InstancedMesh(P.geo, P.mat, cap);
+  im.castShadow = true; im.receiveShadow = true; im.frustumCulled = false;
+  for (let i = 0; i < cap; i++) im.setMatrixAt(i, _zeroM);
+  if (P.withColor) for (let i = 0; i < cap; i++) im.setColorAt(i, _poolWhite);
+  if (P.im) {
+    im.instanceMatrix.array.set(P.im.instanceMatrix.array);
+    if (P.withColor && P.im.instanceColor) im.instanceColor.array.set(P.im.instanceColor.array);
+    scene.remove(P.im); P.im.dispose();
+  }
+  im.count = P.count; P.im = im; P.cap = cap; scene.add(im);
+}
 function instanced(geo, mat, list, colors) {
-  const im = new THREE.InstancedMesh(geo, mat, list.length);
-  list.forEach((m, i) => { im.setMatrixAt(i, m); if (colors) im.setColorAt(i, colors[i]); });
-  im.castShadow = true; im.receiveShadow = true;
-  im.computeBoundingSphere();
-  return im;
+  const key = geo.uuid + '|' + mat.uuid;
+  let P = IPOOL.get(key);
+  if (!P) { P = { geo, mat, withColor: !!colors, im: null, cap: 0, count: 0, free: new Set() }; IPOOL.set(key, P); growPool(P, 128); }
+  const slots = [];
+  for (let i = 0; i < list.length; i++) {
+    let sl = P.free.size ? P.free.values().next().value : undefined;
+    if (sl !== undefined) P.free.delete(sl);
+    else { if (P.count >= P.cap) growPool(P, P.cap * 2); sl = P.count++; P.im.count = P.count; }
+    P.im.setMatrixAt(sl, list[i]);
+    if (P.withColor) P.im.setColorAt(sl, colors ? colors[i] : _poolWhite);
+    slots.push(sl);
+  }
+  P.im.instanceMatrix.needsUpdate = true; if (P.im.instanceColor) P.im.instanceColor.needsUpdate = true;
+  const ph = new THREE.Object3D(); ph.userData.pool = { P, slots };
+  return ph;
+}
+function freeInstances({ P, slots }) {
+  for (const sl of slots) { P.im.setMatrixAt(sl, _zeroM); P.free.add(sl); }
+  while (P.count && P.free.has(P.count - 1)) P.free.delete(--P.count);   // trailing free slots: stop drawing them
+  P.im.count = P.count; P.im.instanceMatrix.needsUpdate = true;
 }
 
 // ---------------------------------------------------------------- drift-zone edge lines
@@ -2372,11 +2404,51 @@ function buildChunk(k) {
   for (const t in inst) if (inst[t].length) g.add(instanced(TREE_GEO[t], t === 'rock' ? rockMat : foliageMat, inst[t], cols[t]));
   if (trunks.length) g.add(instanced(trunkGeo, trunkMat, trunks));
   g.traverse(o => { if (o.isMesh && (o.material === roadMat || o.material === tougeTextMat || o.userData.onRoad)) o.layers.enable(ROAD_LAYER); });
+  mergeStatic(g);                                                         // road strips, lines, terrain, walls… one draw per material
   scene.add(g);
   return g;
 }
+// ---------------------------------------------------------------- draw-call batching
+// Static parts of a group that share a material (and the same shadow / layer / render flags) are baked into one
+// mesh each: one draw call per material instead of one per part. Only plain meshes that are direct children with
+// nothing hung on them (no userData, no material arrays, not instanced) are touched; anything animated is a Group or
+// is passed in `keep`.
+function mergeStatic(group, keep = null) {
+  const buckets = new Map();
+  for (const o of group.children) {
+    if (!o.isMesh || o.isInstancedMesh || Array.isArray(o.material) || (keep && keep(o)) || Object.keys(o.userData).length || o.children.length) continue;
+    const key = [o.material.uuid, o.layers.mask, o.castShadow, o.receiveShadow, o.renderOrder, o.frustumCulled, o.visible].join('|');
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(o);
+  }
+  let saved = 0;
+  for (const list of buckets.values()) {
+    if (list.length < 2) continue;
+    const mat = list[0].material;
+    const names = ['position', 'normal', 'uv', 'color'].filter(n => list.every(o => o.geometry.attributes[n]));
+    if (!names.includes('position') || !names.includes('normal')) continue;
+    if (mat.vertexColors && !names.includes('color')) continue;
+    if ((mat.map || mat.emissiveMap) && !names.includes('uv')) continue;
+    const indexed = list.every(o => o.geometry.index);
+    const geos = list.map(o => {
+      const src = o.geometry, g = new THREE.BufferGeometry();
+      for (const n of names) g.setAttribute(n, src.attributes[n].clone());
+      if (indexed) g.setIndex(src.index.clone());
+      o.updateMatrix(); g.applyMatrix4(o.matrix);
+      return indexed ? g : (g.index ? g.toNonIndexed() : g);
+    });
+    const merged = mergeGeometries(geos);
+    geos.forEach(g => g.dispose());
+    if (!merged) continue;
+    const m = new THREE.Mesh(merged, mat), o0 = list[0];
+    m.castShadow = o0.castShadow; m.receiveShadow = o0.receiveShadow; m.renderOrder = o0.renderOrder; m.frustumCulled = o0.frustumCulled; m.layers.mask = o0.layers.mask;
+    for (const o of list) { group.remove(o); if (!SHARED.has(o.geometry)) o.geometry.dispose(); }
+    group.add(m); saved += list.length - 1;
+  }
+  return saved;
+}
 function disposeChunk(g) {
-  g.traverse(o => { if (o.geometry && !SHARED.has(o.geometry)) o.geometry.dispose(); if (o.isInstancedMesh) o.dispose(); });
+  g.traverse(o => { if (o.geometry && !SHARED.has(o.geometry)) o.geometry.dispose(); if (o.isInstancedMesh) o.dispose(); if (o.userData.pool) freeInstances(o.userData.pool); });
   scene.remove(g);
 }
 const chunks = new Map();
@@ -2496,6 +2568,7 @@ const car = makeCar();
     car.remove(c); c.position.y -= PIVOT_Y; body.add(c);
   }
   car.add(body); car.userData.body = body;
+  mergeStatic(body);                                                      // ~34 static parts → one mesh per material (shared materials keep the lamp glow working)
 }
 scene.add(car);
 
@@ -2602,22 +2675,31 @@ const NOTE_POOL = Array.from({ length: 28 }, () => {
     const hinge = new THREE.Group(); hinge.position.set(0, 0.405, -0.23); hinge.rotation.x = -1.25; tt.add(hinge);
     const lid = new THREE.Mesh(new THREE.BoxGeometry(0.63, 0.08, 0.45), lidMatGlass); lid.position.set(0, 0.04, 0.225); hinge.add(lid);
   }
-  // a heap of vinyl records filling the rest of the bed: one instanced mesh per label colour (edge, face up, face down)
+  // a heap of vinyl records filling the rest of the bed: ONE instanced mesh for the lot — a white-label record whose
+  // label takes each instance's colour (the black grooves stay black), with both faces in one draw (edge + faces = 2)
   const discGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.01, 40);
+  const pileGeo = discGeo.clone(); { const [side, top, bot] = pileGeo.groups; pileGeo.clearGroups(); pileGeo.addGroup(side.start, side.count, 0); pileGeo.addGroup(top.start, top.count + bot.count, 1); }
+  const whiteTex = canvasTex(512, 512, g => recordFace(g, 512, '#ffffff'));
+  const pileFace = new THREE.MeshStandardMaterial({ map: whiteTex, emissiveMap: whiteTex, emissive: '#ffffff', emissiveIntensity: 0.3, metalness: 0.15, roughness: 0.32, alphaTest: 0.5 });
+  pileFace.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n#ifdef USE_INSTANCING_COLOR\n  totalEmissiveRadiance *= vColor;\n#endif'); };
+  pileFace.customProgramCacheKey = () => 'pileFace';
   const pile = new THREE.Group(), PER = 7;
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1);
-  for (const mat of recordMats) {
-    const im = new THREE.InstancedMesh(discGeo, [discEdge, mat, mat], PER);
+  const im = new THREE.InstancedMesh(pileGeo, [discEdge, pileFace], RECORD_LABELS.length * PER), lc = new THREE.Color();
+  RECORD_LABELS.forEach((col, k) => {
     for (let i = 0; i < PER; i++) {
       const x = (Math.random() * 2 - 1) * 0.5, z = -0.05 + Math.random() * 0.95;
       const mound = Math.max(0, 1 - (x / 0.8) ** 2 - ((z - 0.5) / 0.8) ** 2);           // piled highest toward the tailgate, low by the hi-fi
       v.set(x, 0.02 + Math.random() * 0.34 * mound, z);
       e.set((Math.random() - 0.5) * 0.7, Math.random() * 6.3, (Math.random() - 0.5) * 0.7);
-      im.setMatrixAt(i, m4.compose(v, q.setFromEuler(e), one));
+      im.setMatrixAt(k * PER + i, m4.compose(v, q.setFromEuler(e), one));
+      im.setColorAt(k * PER + i, lc.set(col));
     }
-    im.castShadow = true; pile.add(im);
-  }
+  });
+  im.castShadow = true; pile.add(im);
   load.add(pile); bed.pile = pile;
+  for (const cab of bed.cabs) mergeStatic(cab);
+  for (const c of load.children) if (!bed.cabs.includes(c) && c !== pile) mergeStatic(c);
   // a couple propped up against the bed sides
   for (const [x, rz, k] of [[-0.74, 1.25, 0], [0.74, -1.25, 4]]) { const d = new THREE.Mesh(discGeo, [discEdge, recordMats[k], recordMats[k]]); d.position.set(x, 0.3, 0.35); d.rotation.set(0, 0, rz); load.add(d); }
 }
