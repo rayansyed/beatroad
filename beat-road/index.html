@@ -99,8 +99,9 @@
   .srWho { font-weight:900; letter-spacing:.12em; text-transform:uppercase; font-size:12px; } .srScore { font-size:34px; font-weight:900; margin:4px 0; } .srSub { font-size:12px; opacity:.85; }
   #hud.splitL { right:50%; } #hud.splitR { left:50%; }
   body.split #hud #cluster, body.split #hud .hud-right, body.split #hud #yen { zoom:.72; }   /* half a screen each: smaller gauges */
-  body.split #hud #clFuel { visibility:hidden; }
   body.split #hud #chain, body.split #hud #tagPop { zoom:.78; }                    /* no stations in split screen, so no fuel to watch */
+  #viewDivider { display:none; position:fixed; top:0; bottom:0; left:50%; width:4px; margin-left:-2px; background:#141218; box-shadow:0 0 0 1px rgba(255,255,255,.25); z-index:5; pointer-events:none; }
+  body.split.viewSplit #viewDivider { display:block; }
   .menuHead { display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .menuHead .setBtn { padding:8px 14px; font-size:13px; flex:none; }
   #settings { z-index:12; }                                   /* sits over the menu or the pause screen */
@@ -641,6 +642,8 @@
   </div>
 </div>
 
+<div id="viewDivider"></div>
+
 <div id="pause" class="overlay hidden">
   <div class="panel" style="width:min(340px,100%);text-align:center">
     <h2>Paused</h2>
@@ -911,7 +914,6 @@ function bridgeAt(d) {
 const STATION_SEG = 1400, STATION_LEN = 40;
 const stationCache = new Map();
 function stationSpan(j) {
-  if (SPLIT) return null;
   if (tutRoad && !tutStationsOn) return null;                           // the tutorial's road has no stations until its gas-station step
   if (stationCache.has(j)) return stationCache.get(j);
   let st = null;
@@ -919,10 +921,17 @@ function stationSpan(j) {
     const s0 = j * STATION_SEG + 350 + hash1(j * 6.1 + 2) * 800;
     let ok = true;
     for (let q = s0 - 80; q <= s0 + 80 && ok; q += 20) ok = twistAt(q) < 0.01 && canyonAt(q) === 0 && bridgeAt(q) === 0;
-    if (ok) st = { s: s0, side: hash1(j * 3.7 + 9) < 0.5 ? -1 : 1, used: false, announced: false };
+    if (ok) st = SPLIT ? splitStation(s0) : { s: s0, side: hash1(j * 3.7 + 9) < 0.5 ? -1 : 1, used: false, announced: false };
   }
   stationCache.set(j, st);
   return st;
+}
+// 2 Player: a station is built twice, once on the outer edge of each highway. Asked by a player it's on THEIR outer
+// side (P1 left, P2 right) and keeps their own "used" flag; while the world is being built, sideFix picks the copy
+function splitStation(s0) {
+  return { s: s0, sideFix: 0, usedBy: {}, announced: false,
+    get side() { return this.sideFix || PSIDE || -1; },
+    get used() { return !!this.usedBy[PSIDE]; }, set used(v) { this.usedBy[PSIDE] = v; } };
 }
 function stationAt(d) {
   const j = Math.floor(d / STATION_SEG);
@@ -1715,7 +1724,7 @@ function addPaddies(g, i0, i1) {
   PADDY_BANDS.forEach((band, b) => {
     for (const side of [-1, 1]) {
       const cols = band.map(v => v * side).sort((x, y) => x - y);
-      const stationClear = i => !(Math.abs(cols[0]) < 30 && [0, 25, -25].some(d => { const st = stationAt(i * STEP + d); return st && st.side === side; }));
+      const stationClear = i => !(Math.abs(cols[0]) < 30 && [0, 25, -25].some(d => { const st = stationAt(i * STEP + d); return st && (SPLIT || st.side === side); }));
       const h = p => p.y - 0.36;
       // rice colour per cell: buildStrip visits rows in order, so a counter tells us which row we're on
       let n = 0;
@@ -2230,6 +2239,12 @@ function addStations(g, i0, i1) {
     const rc = Math.round(st.s / STEP);
     if (rc < i0 || rc >= i1) continue;
     ensurePath(rc + 20);
+    for (const sf of SPLIT ? [-1, 1] : [0]) { st.sideFix = sf; addStation(g, st, rc); }
+    if (SPLIT) st.sideFix = 0;
+  }
+}
+function addStation(g, st, rc) {
+  {
     const p = pts[rc], side = st.side, r0 = rc - STATION_LEN / 4, r1 = rc + STATION_LEN / 4;
     // forecourt: a level patch so the pumps and pillars stand flat, coloured like the region's own ground so it blends in
     // (it used to be a grey slab that looked out of place in snow / grass / paddies); then the green-striped refuel lane
@@ -2237,7 +2252,7 @@ function addStations(g, i0, i1) {
     // the whole lane solid green, starting well before the canopy, with ここで給油 painted on the approach (the canopy hides
     // the lane under it from the high camera)
     const rIn = r0 - 16;
-    g.add(mesh(buildStrip(rIn, r1, side > 0 ? [3.4, 6.6] : [-6.6, -3.4], (q, off) => surfY(q, off) + 0.03, laneColor), roadMat));
+    { const lane = mesh(buildStrip(rIn, r1, side > 0 ? [3.4, 6.6] : [-6.6, -3.4], (q, off) => surfY(q, off) + 0.03, laneColor), roadMat); lane.userData.splitOut = true; g.add(lane); }   // (2 Player: moves out with its station, not copied onto both roads)
     g.add(mesh(buildTextStrip(rIn + 1, 16, 1.35, side * 5.0), gasTextMat));
     // canopy straddling the outer lane, on four pillars
     const cy = surfY(p, side * 7) + 5.4, cpos = roadPoint(st.s, side * 8.6, 0);
@@ -2502,15 +2517,21 @@ function splitMatrices(list) {
   if (!splitBuild) return list;
   return list.map(m => { const e = m.elements; splitShift(e[12], e[14], 0, _ssh); const c = m.clone(); c.elements[12] += _ssh.x; c.elements[14] += _ssh.z; return c; });
 }
+// one scenery object: plain geometry is pushed out vertex by vertex; a group sitting at the origin (gates, clipping
+// points: their parts are placed in world space) is handled part by part; anything else moves whole, by where it stands
+function spreadObj(o, plain) {
+  if (plain(o)) splitGeometry(o.geometry, 0);
+  else if (o.isGroup && o.position.lengthSq() === 0 && o.quaternion.w === 1) for (const c of o.children) spreadObj(c, plain);
+  else { splitShift(o.position.x, o.position.z, 0, _ssh); o.position.x += _ssh.x; o.position.z += _ssh.z; }
+}
 function splitChunk(g, i0, i1) {
   const plain = o => (o.isMesh || o.isLine || o.isPoints) && !o.isInstancedMesh && !SHARED.has(o.geometry) && o.position.lengthSq() === 0 && o.quaternion.w === 1 && o.scale.x === 1;   // (power lines too: each point moves with its own pole)
   for (const o of [...g.children]) {
     if (o.userData.pool) continue;                                       // pooled instances were spread as they were added
-    if (o.isMesh && (o.material === roadMat || o.material === tougeTextMat) && plain(o)) {   // road + its paint: one copy per highway
+    if (o.isMesh && (o.material === roadMat || o.material === tougeTextMat) && plain(o) && !o.userData.splitOut) {   // road + its paint: one copy per highway
       const right = new THREE.Mesh(o.geometry.clone(), o.material === roadMat ? roadMat2 : o.material); right.castShadow = o.castShadow; right.receiveShadow = o.receiveShadow; right.renderOrder = o.renderOrder;
       splitGeometry(o.geometry, -1); splitGeometry(right.geometry, 1); g.add(right);
-    } else if (plain(o)) splitGeometry(o.geometry, 0);                   // terrain, buildings, strips: pushed out
-    else { splitShift(o.position.x, o.position.z, 0, _ssh); o.position.x += _ssh.x; o.position.z += _ssh.z; }   // props and groups: moved whole
+    } else spreadObj(o, plain);
   }
   // the median: a strip of concrete between the highways and a jersey barrier down the middle
   const pos = [], idx = [];
@@ -4507,6 +4528,7 @@ function startGame(kind, node, label, extra = {}) {
 }
 
 function endGame(toMenu = false, reason = false) {   // reason: true / 'wreck' = health ran out, 'gas' = ran dry
+  if (SPLIT && PL) { endSplit(toMenu); return; }   // 2 Player has its own ending
   if (!run) return;
   const r = run; run = null;
   // wrecked by the rivals after the song's done: the level still counts (best score kept)
@@ -4619,7 +4641,7 @@ function updateFuel(dt) {
   if (refueling) {
     setFuel(fuel + 45 * dt);
     if (!st.used) { st.used = true; stats.fuelStops = (stats.fuelStops || 0) + 1; tagPop('refueling', '#ffe1a3'); }
-  } else if (!SPLIT) setFuel(fuel - fuelRate(speed) * dt);   // split screen: no stations, so no fuel to run out of
+  } else setFuel(fuel - fuelRate(speed) * dt);
   if (run && run.kind === 'tutorial' && fuel < 12) setFuel(12);         // …or strands you
   if (fuel <= 0 && !wasEmpty) { wasEmpty = true; flash('engine stalled · coast to a station!', '#f4a08c'); SFX.empty(); }
   if (fuel > 5) wasEmpty = false;
@@ -4652,6 +4674,8 @@ let runOff = null;   // drift mode: set when a gate is missed — the truck slid
 let parked = false;   // the wrecked truck stays put behind the results screen until you go back to the menu
 function wreck(reason) {
   if (state !== 'playing') return;
+  // 2 Player: a wreck doesn't end the match for both — the truck limps back on: chain gone, 60% health, most of the speed lost
+  if (SPLIT) { endDrift('crash'); loseChain(); setHealth(60); speed *= 0.4; shake = Math.max(shake, 1); stats.wrecks = (stats.wrecks || 0) + 1; tagPop('WRECKED · back on the road', '#ff5a3d'); return; }
   state = 'wrecking'; endDrift('crash');
   setTimeout(() => { if (state === 'wrecking') { parked = true; endGame(false, reason); } }, WRECK_HOLD * 1000);
 }
@@ -5685,7 +5709,7 @@ function updateChain(dt) {
     if (gr.tricks?.length) rows.push([gr.tricks.join(' › '), gr.comboPts || 0, clock - (gr.last || 0) < 0.8, 'tricks']);   // every trick in the combo
   }
   // everything in the chain stays on the card: the more there is, the smaller the text, so the card keeps its size
-  const wide = rows.filter(r => r[3] !== 'tricks').length > 3;                // 4+ skills: two columns
+  const wide = !SPLIT && rows.filter(r => r[3] !== 'tricks').length > 3;   // (2 Player: each card has half the screen, so it stays one column)                // 4+ skills: two columns
   $('chainRows').classList.toggle('wide', wide);
   const trickLen = gr && gr.tricks ? gr.tricks.join(' › ').length : 0, lines = (wide ? Math.ceil(rows.length / 2) : rows.length) + Math.floor(trickLen / (wide ? 70 : 34));
   $('chainRows').style.setProperty('--cs', Math.max(0.7, Math.min(1, 1 - (lines - 5) * 0.05)).toFixed(3));
@@ -7347,9 +7371,65 @@ function makeHud2() {
 // one shared screen: the whole frame is rendered once from a camera that keeps both trucks in view
 const camShared = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.5, 2600);
 const shCam = { pos: new THREE.Vector3(), look: new THREE.Vector3(), ready: false };
+// when the trucks drift too far apart for one camera (the one in front would be looking at the edge of the frame, with
+// no view of what's coming), the screen splits down the middle — each player gets their own chase cam — and it joins
+// back into the shared view once they're close again (hysteresis, so it doesn't flicker at the threshold)
+// The change is animated (splitK 0 → 1 over SPLIT_TIME): each half starts as exactly its half of the shared picture
+// (the shared camera with a view offset), then its camera glides into that player's own chase cam while the divider
+// fades in — and the reverse to join. No cut.
+const SPLIT_AT = 55, JOIN_AT = 32, SPLIT_TIME = 0.8;
+let viewSplit = false, splitK = 0;
+const halfCams = [new THREE.PerspectiveCamera(), new THREE.PerspectiveCamera()], camSharedOff = new THREE.PerspectiveCamera();
+const _hq = new THREE.Quaternion();
 function splitLayout() {
   if (!SPLIT || !PL) return;
+  const half = Math.floor(innerWidth / 2), pr = renderer.getPixelRatio();
+  if (splitK > 0) {
+    composer.setSize(half, innerHeight); grade.uniforms.res.value.set(half * pr, innerHeight * pr);
+    for (const p of PL) { p.camera.aspect = half / innerHeight; p.camera.updateProjectionMatrix(); }
+  } else {
+    composer.setSize(innerWidth, innerHeight); grade.uniforms.res.value.set(innerWidth * pr, innerHeight * pr);
+  }
+  attachDepth();
   camShared.aspect = innerWidth / innerHeight; camShared.updateProjectionMatrix();
+  document.body.classList.toggle('viewSplit', splitK > 0);
+}
+function updateViewSplit(dt) {
+  const ds = Math.abs(PL[0].carS - PL[1].carS);
+  viewSplit = viewSplit ? ds > JOIN_AT : ds > SPLIT_AT;
+  const was = splitK > 0;
+  splitK = THREE.MathUtils.clamp(splitK + (viewSplit ? 1 : -1) * dt / SPLIT_TIME, 0, 1);
+  if ((splitK > 0) !== was) splitLayout();                            // the render size changes only at the start / end
+  $('viewDivider').style.opacity = THREE.MathUtils.smoothstep(splitK, 0.15, 0.85).toFixed(3);
+}
+// the camera for one half, partway (e) between "its half of the shared view" and "that player's chase cam"
+function halfCam(p, i, e) {
+  const half = Math.floor(innerWidth / 2), x = p.side < 0 ? 0 : innerWidth - half, hc = halfCams[i];
+  camSharedOff.copy(camShared); camSharedOff.aspect = innerWidth / innerHeight;
+  camSharedOff.setViewOffset(innerWidth, innerHeight, x, 0, half, innerHeight); camSharedOff.updateProjectionMatrix();
+  hc.near = camShared.near; hc.far = camShared.far;
+  hc.position.lerpVectors(camShared.position, p.camera.position, e);
+  hc.quaternion.copy(camShared.quaternion).slerp(_hq.copy(p.camera.quaternion), e);
+  hc.updateMatrixWorld(true);
+  const A = camSharedOff.projectionMatrix.elements, B = p.camera.projectionMatrix.elements, C = hc.projectionMatrix.elements;
+  for (let k = 0; k < 16; k++) C[k] = A[k] + (B[k] - A[k]) * e;
+  hc.projectionMatrixInverse.copy(hc.projectionMatrix).invert();
+  return hc;
+}
+// split view: each half drawn from that player's own chase cam, with their own flash / drift-zone look and shadows
+function renderHalves() {
+  const half = Math.floor(innerWidth / 2), e = THREE.MathUtils.smoothstep(splitK, 0, 1);
+  for (const [i, p] of PL.entries()) {
+    const x = p.side < 0 ? 0 : innerWidth - half, cam = halfCam(p, i, e);
+    grade.uniforms.fxFlash.value = p.fxOut.flash; grade.uniforms.fxTint.value.copy(p.fxOut.tint); grade.uniforms.fxPunch.value = p.fxOut.punch; grade.uniforms.fxDesat.value = p.fxOut.desat;
+    sunLight.target.position.copy(p.car.position); sunLight.position.copy(p.car.position).addScaledVector(lightDir, 200);
+    camera = cam; composer.passes[0].camera = cam;
+    renderer.setScissorTest(true); renderer.setViewport(x, 0, half, innerHeight); renderer.setScissor(x, 0, half, innerHeight);
+    ink.uniforms.mono.value = p.zoneFx;
+    if (p.zoneFx > 0.001) renderRoadMask();
+    composer.render();
+  }
+  renderer.setScissorTest(false);
 }
 // behind the midpoint of the two trucks, pulled back and up far enough to fit both highways (more on a narrow window,
 // and more the further apart the trucks are); C still switches between the default and the zoomed-out distance
@@ -7384,8 +7464,8 @@ function renderShared() {
 // each player's floating HUD bits (tag over the truck, chain card) sit over their truck, inside their side's HUD
 function sharedHud(p) {
   const get = id => (p.hudMap && p.hudMap.get(id)) || document.getElementById(id), half = Math.floor(innerWidth / 2), left = p.side < 0 ? 0 : innerWidth - half;
-  tagV.copy(p.car.position); tagV.y -= 0.2; tagV.project(camShared);
-  const tagX = (tagV.x * 0.5 + 0.5) * innerWidth - left, tagY = (-tagV.y * 0.5 + 0.5) * innerHeight + 26;
+  tagV.copy(p.car.position); tagV.y -= 0.2; tagV.project(splitK > 0 ? halfCams[PL.indexOf(p)] : camShared);
+  const tagX = splitK > 0 ? (tagV.x * 0.5 + 0.5) * half : (tagV.x * 0.5 + 0.5) * innerWidth - left, tagY = (-tagV.y * 0.5 + 0.5) * innerHeight + 26;
   get('carTag').style.transform = `translate(${tagX}px, ${tagY}px) translate(-50%, 0)`;
   const card = get('chain'), w = card.offsetWidth, h = card.offsetHeight;
   const x = Math.max(16 + w / 2, Math.min(half - 16 - w / 2, tagX)), bottom = innerHeight - 150;
@@ -7394,7 +7474,7 @@ function sharedHud(p) {
 }
 function splitFrame(t, dtReal) {
   const dt = dtReal, playing = state === 'playing' || state === 'wrecking';
-  if (state === 'paused') { pollPad(dtReal); renderShared(); return; }
+  if (state === 'paused') { pollPad(dtReal); if (splitK > 0) renderHalves(); else renderShared(); return; }
   let now = t / 1000;
   if (playing) { now = ctx.currentTime; analyze(now); consumeFrames(now, dt); }
   dust.update(dt); sparkles.update(dt); smoke.update(dt); petalFx.update(dt);
@@ -7411,17 +7491,19 @@ function splitFrame(t, dtReal) {
   const fl = PL.reduce((m, p) => p.fxOut.flash > m.fxOut.flash ? p : m);
   grade.uniforms.fxFlash.value = fl.fxOut.flash; grade.uniforms.fxTint.value.copy(fl.fxOut.tint);
   grade.uniforms.fxPunch.value = Math.max(...PL.map(p => p.fxOut.punch)); grade.uniforms.fxDesat.value = Math.max(...PL.map(p => p.fxOut.desat));
+  updateViewSplit(dt);
   sharedCamera(dt);
+  if (splitK > 0) PL.forEach((p, i) => halfCam(p, i, THREE.MathUtils.smoothstep(splitK, 0, 1)));   // (the HUD tags follow these)
   if (run) for (const p of PL) sharedHud(p);
-  renderShared();
+  if (splitK > 0) renderHalves(); else renderShared();
   if (playing) splitTandem(dt);
   if (playing && run && ctx.currentTime - run.start > run.duration + LOOKAHEAD + 0.5) endSplit();
 }
 // where the highways meet (a solo 峠) the trucks share one road: staggered a beat apart (and never through each other),
 // and drifting together — both sliding, one chasing the other — is a TANDEM, a skill in both chains
-// Staggered: as the roads merge, the trailing truck drops back exactly ONE BEAT of road behind the leader (a lead /
-// chase tandem). A 峠 is synced to the beat, so one beat behind is still on the beat at every gate — both players
-// keep their timing, and the trucks can't touch. Whoever's ahead going in leads.
+// Staggered: as the roads merge, the trailing truck drops back half a beat of road (~11 m) behind the leader — a lead /
+// chase tandem — and once they're on one road it holds that slot at the leader's pace (transitions are judged by where
+// you are at each gate, so the chaser just flicks a moment later). The trucks can't touch. Whoever's ahead going in leads.
 let tandemLead = null;
 function splitTandem(dt) {
   const [a, b] = PL, H = hwOff((a.carS + b.carS) / 2);
@@ -7430,8 +7512,10 @@ function splitTandem(dt) {
     if (!tandemLead) tandemLead = a.carS >= b.carS ? a : b;
     const lead = tandemLead, trail = lead === a ? b : a;
     const beat = (run && ((run.solo && run.solo.beat) || (run.grid && run.grid.P))) || tempoP || 0.5;
-    const gap = THREE.MathUtils.clamp(Math.max(lead.speed, 20) * beat, 12, 28) * m, cur = lead.carS - trail.carS;
-    if (cur < gap - 0.5) trail.carS -= Math.min(gap - cur, 16 * dt);     // ease back into the chase slot
+    const gap = THREE.MathUtils.clamp(Math.max(lead.speed, 20) * beat * 0.5, 9, 14) * m, cur = lead.carS - trail.carS;
+    if (m > 0.98) {                                                     // fully merged: hold formation at the leader's pace
+      trail.carS += (lead.carS - gap - trail.carS) * (1 - Math.exp(-dt * 4)); trail.speed = lead.speed;
+    } else if (cur < gap - 0.5) trail.carS -= Math.min(gap - cur, 16 * dt);   // easing back into the chase slot
   } else if (Math.max(splitMerge(a.carS), splitMerge(b.carS)) < 0.01) tandemLead = null;
   const xa = a.lateral - hwOff(a.carS), xb = b.lateral + hwOff(b.carS), ds = a.carS - b.carS, dx = xb - xa;
   if (Math.abs(ds) < 4.6 && Math.abs(dx) < 2.1) {
@@ -7487,7 +7571,7 @@ async function startSplit(levelIdx) {
       L.analysisLR = [l.beats, r.beats];
     }
     lobby = null; $('splitLobby').classList.add('hidden');
-    SPLIT = true; PSIDE = 0;
+    SPLIT = true; PSIDE = 0; stationCache.clear();
     BIOME_LEN = L.regionLen || 1700; regionPlan = L.route || null;
     tougeMode = 'song'; scheduled.length = 0;
     resetWorld(L.biome);
@@ -7501,7 +7585,7 @@ async function startSplit(levelIdx) {
     saveP(P1); P1.bi = 0;
     const P2 = makeP2From(P1); Object.assign(P2, { side: 1, pads: padsets[1], beats: L.analysisLR[1], bi: 0, hudMap: makeHud2() });
     PL = [P1, P2];
-    splitAudio(true); shCam.ready = false; splitLayout(); document.body.classList.add('split');
+    splitAudio(true); shCam.ready = false; viewSplit = false; splitK = 0; splitLayout(); document.body.classList.add('split');
     loadP(P2); lateral = 0; carS = P1.carS; updateHud(); saveP(P2);
     loadP(P1);
   } finally { levelLoading = false; loadHide(); }
@@ -7516,11 +7600,11 @@ function endSplit(toMenu = false) {
   splitAudio(false); for (const p of PL) if (p.musicFx) p.musicFx.miss = 0;
   document.querySelector('#hud.splitR')?.remove(); document.getElementById('hud').classList.remove('splitL');
   if (car2) car2.visible = false;
-  SPLIT = false; PSIDE = 0; HUDR = null; curP = null; PL = null; tandemLead = null; document.body.classList.remove('split');
+  SPLIT = false; PSIDE = 0; HUDR = null; curP = null; PL = null; tandemLead = null; viewSplit = false; splitK = 0; document.body.classList.remove('viewSplit'); document.body.classList.remove('split');
   renderer.setScissorTest(false); renderer.setViewport(0, 0, innerWidth, innerHeight); composer.passes[0].camera = camera;
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); applyGraphics();
   state = 'menu'; $('hud').classList.add('hidden'); $('pause').classList.add('hidden'); $('stage').classList.remove('show');
-  resetWorld(-1);
+  stationCache.clear(); resetWorld(-1);
   if (toMenu) { $('menu').classList.remove('hidden'); return; }
   const pct = sc => sc.hits + sc.misses ? Math.round(sc.hits / (sc.hits + sc.misses) * 100) : 0;
   const [a, b] = scores, win = a.score === b.score ? 0 : a.score > b.score ? 1 : 2;
