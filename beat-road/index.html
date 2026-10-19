@@ -551,7 +551,7 @@
       </ol>
       Spotify doesn't let web apps read the raw audio of a track, so the game captures the tab's audio instead. Skip songs in Spotify as usual. The drive continues until you stop sharing.
     </details>
-    <div class="keys"><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> steer · double-tap ← / → to dash sideways, ↑ to dash forward · <kbd>↑</kbd> / <kbd>W</kbd> throttle · <kbd>↓</kbd> / <kbd>S</kbd> brake (Drift Mode &amp; Rival Finale) · hold <kbd>Space</kbd> in corners to drift, tap it again where an S-bend switches to transition · tap <kbd>Space</kbd> at a rail to grind (it holds on by itself — tap again to transfer or hop off), or on a ramp lip for air · <kbd>P</kbd> / <kbd>Esc</kbd> pause · camera: mouse wheel or <kbd>-</kbd> <kbd>=</kbd> zoom, right-drag or <kbd>Q</kbd> <kbd>E</kbd> / <kbd>R</kbd> <kbd>F</kbd> to orbit and tilt, <kbd>C</kbd> resets · on touch screens, hold the left or right side to steer, add a second finger to drift, lift and re-tap it to transition · <b>Xbox controller</b>: left stick steers, <kbd>A</kbd> = Space, <kbd>RT</kbd> / <kbd>LT</kbd> throttle / brake, <kbd>LB</kbd> <kbd>RB</kbd> dash sideways, <kbd>LB</kbd> + <kbd>RB</kbd> together dash forward, <kbd>B</kbd> skip tutorial step, <kbd>☰</kbd> pause, right stick orbits the camera · D-pad + <kbd>A</kbd> / <kbd>B</kbd> in menus</div>
+    <div class="keys"><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> steer · double-tap ← / → to dash sideways, ↑ / <kbd>W</kbd> to dash forward (dash into a car to knock it flying) · <kbd>↑</kbd> / <kbd>↓</kbd> throttle / brake in Drift Mode &amp; Rival Finale · hold <kbd>Space</kbd> in corners to drift, tap it again where an S-bend switches to transition · tap <kbd>Space</kbd> at a rail to grind (it holds on by itself — tap again to transfer or hop off), or on a ramp lip for air · <kbd>P</kbd> / <kbd>Esc</kbd> pause · camera: mouse wheel or <kbd>-</kbd> <kbd>=</kbd> zoom, right-drag or <kbd>Q</kbd> <kbd>E</kbd> / <kbd>R</kbd> <kbd>F</kbd> to orbit and tilt, <kbd>C</kbd> resets · on touch screens, hold the left or right side to steer, add a second finger to drift, lift and re-tap it to transition · <b>Xbox controller</b>: left stick steers, <kbd>A</kbd> = Space, <kbd>LB</kbd> <kbd>RB</kbd> dash sideways, <kbd>LB</kbd> + <kbd>RB</kbd> together dash forward, <kbd>RT</kbd> / <kbd>LT</kbd> gas / brake (Drift Mode &amp; Rival Finale), <kbd>B</kbd> skip tutorial step, <kbd>☰</kbd> pause, right stick orbits the camera · D-pad + <kbd>A</kbd> / <kbd>B</kbd> in menus</div>
     <div id="err"></div>
   </div>
 </div>
@@ -2683,6 +2683,8 @@ function makeNote(t, s, x, type, band, goldRun) {
 // Some lanterns lead onto a glowing rail along the road. Tap Space as you reach it and the truck hops up and grinds it
 // on its own — locked on, sparks flying — scoring the whole way, with a bonus for riding it to the end. Tap again to
 // transfer to a twin alongside, or (with nothing alongside) to ollie off.
+// grinding has no gas: the rail just carries the speed you hit it with; a perfect transfer kicks PERFECT_KICK on top
+const PERFECT_KICK = 4.5;
 const holds = [], HOLD_STEP = 1.2, RAIL_Y = 1.45, DIV_SEG = 2.0;   // a run of plastic road dividers, tall enough to grind over the traffic
 const RAIL_LINES = [-5.9, -2, 2, 5.9];                // rails only run along the painted lines: the solid edges and the lane dashes
 const railLine = x => RAIL_LINES.reduce((a, b) => Math.abs(b - x) < Math.abs(a - x) ? b : a);
@@ -2981,6 +2983,7 @@ function updateTrickOut(dt) {
       setTrick(r, trickInput() || 'fifty');
       // (a tap mid-air isn't used up while flying, so it transfers you straight back on landing)
       tagPop('Perfect transfer', '#9ff0bf'); SFX.perfect(); stats.transfers = (stats.transfers || 0) + 1;
+      speed = Math.min(MAX_SPEED, speed + PERFECT_KICK); fx.punch = Math.max(fx.punch, 0.04); fx.flash = Math.max(fx.flash, 0.12); fx.tint.set('#9ff0bf');   // a little kick of speed on landing
       grindCombo(T.name);
     } else {
       if (r) grindSound(false);
@@ -3077,6 +3080,7 @@ function updateHolds(dt) {
         } else if (carS > (h.linked ? h.s1 - v * 0.4 : h.s0 + v * 0.3)) { if (h.left) h.state = 'done'; else endHold(h, false); }   // a twin (or the rail you hopped off) stays open to transfer onto
       }
       if (h.state === 'holding') {
+        // the grind holds itself. Another tap: beside a twin it's a transfer, otherwise you ollie off the rail
         // the grind holds itself. Another tap: beside a twin it's a transfer, otherwise you ollie off the rail
         if (railTap()) {
           useRailTap();
@@ -4035,6 +4039,8 @@ function dashForward() {
   stats.dashes = (stats.dashes || 0) + 1; (stats.dashDirs = stats.dashDirs || {}).f = true;
   SFX.dash?.();
 }
+// mid-dash (forward or sideways) you hit hard enough to knock a car flying instead of crashing into it
+const dashingHard = () => dashF > 8 || Math.abs(dashV) > 10;
 function dash(dir) {
   if (state !== 'playing' || dashCd > 0 || drifting || spinT > 0 || (run && run.kind === 'drift') || grindHold() || trickOut) return;
   if (Math.abs(lateral) > 5.2 && Math.sign(lateral) === dir) return;   // already against that wall
@@ -5044,6 +5050,14 @@ function updateTraffic(dt) {
     // passed cleanly: it went from ahead of us to behind (whether we overtook it or it came the other way)
     if (!t.hit && t.prevDs !== undefined && t.prevDs > 0 && ds <= 0) stats.passed = (stats.passed || 0) + 1;
     t.prevDs = ds;
+    if (!t.hit && dashingHard() && state === 'playing' && Math.abs(ds) < (t.mesh.userData.len / 2 + 2.0) && Math.abs(dx) < 1.95 && hopY < 0.6 && grindK < 0.5) {
+      // dashed into it: it's the car that goes flying — a takedown, and a skill in your chain
+      t.hit = true; t.vx = Math.sign(dx || 1) * 16; t.v *= 0.25; t.spin = (Math.random() - 0.5) * 2;
+      explodeAt(t.mesh.position, false); shake = Math.max(shake, 0.5); rumble(0.8, 0.8, 220);
+      const e = chainEntry('smash'); e.count = (e.count || 0) + 1; e.pts += 300; e.last = clock;
+      stats.smashes = (stats.smashes || 0) + 1; tagPop('SMASHED!', '#ff6a1a');
+      continue;
+    }
     if (!t.hit && Math.abs(ds) < (t.mesh.userData.len / 2 + 2.0) && Math.abs(dx) < 1.95 && hopY < 0.6 && grindK < 0.5) {   // grinding: the rail carries you over the traffic
       t.hit = true; t.vx = Math.sign(dx || 1) * 9; t.v *= 0.4;
       damage(22); shake = 0.8; slow = 0.5; stats.carHits = (stats.carHits || 0) + 1; endDrift('crash');
@@ -5228,6 +5242,8 @@ function updateChain(dt) {
   if (go) rows.push([`gold run ×${go.count}`, go.pts, clock - (go.last || 0) < 0.8]);
   if (tr) rows.push([`transitions ×${tr.count}${tr.perfects ? ` · ${tr.perfects} perfect` : ''}`, tr.pts, clock - (tr.last || 0) < 0.8]);
   if (cl) rows.push([`clips ×${cl.count}${cl.great ? ` · ${cl.great} great` : ''}`, cl.pts, clock - (cl.last || 0) < 0.8]);
+  const sm = chain.entries.smash;
+  if (sm) rows.push([`dash smash ×${sm.count}`, sm.pts, clock - (sm.last || 0) < 0.8]);
   const ai = chain.entries.air;
   if (ai) rows.push([`air ×${ai.count || 0}`, ai.pts, clock - (ai.last || 0) < 0.8]);
   if (gr) {
@@ -5491,7 +5507,7 @@ function actionDown(repeat = false) {
 }
 function actionUp() { held.hold = false; held.drift = false; held.goldTap = false; }
 addEventListener('keyup', e => { const s = keySide(e.key); if (s) sideUp(s); if (e.code === 'Space') actionUp(); });
-addEventListener('blur', () => { held.left = held.right = held.up = held.down = held.drift = held.hold = false; held.pointer = 0; held.touches = 0; held.padX = 0; held.padDir = null; });
+addEventListener('blur', () => { held.left = held.right = held.up = held.down = held.drift = held.hold = false; held.pointer = 0; held.touches = 0; held.padX = 0; held.padDir = null; held.padGas = held.padBrake = 0; });
 addEventListener('keydown', e => {
   if (state === 'tutfocus') { if (!e.repeat && (e.key === 'Enter' || e.code === 'Space')) tutContinue(); e.preventDefault(); return; }
   const side = keySide(e.key);
@@ -5505,7 +5521,7 @@ addEventListener('keydown', e => {
 });
 // ---------------------------------------------------------------- Xbox (and other standard-layout) controllers
 // Driving: left stick steers (analog), D-pad also steers · A = Space (drift, transitions, grind, transfers, ramps, gold
-// taps, block / parry) · RT throttle, LT brake · LB / RB dash left / right, LB + RB together
+// taps, block / parry) · RT gas, LT brake (analog; Drift Mode / Rival Finale) · LB / RB dash left / right, LB + RB together
 // dash forward · B skips a tutorial step · Menu pauses · right stick orbits the camera, View resets it.
 // In menus: D-pad / left stick moves between buttons, A presses, B goes back. Hits, parries and blasts rumble.
 const PAD = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, VIEW: 8, MENU: 9, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
@@ -5534,12 +5550,11 @@ function pollPad(dt) {
   if (inGame) {
     held.padX = Math.sign(lx) * Math.pow(Math.abs(lx), 1.4);              // a gentle curve: fine control near centre
     held.padDir = Math.abs(lx) > 0.6 ? (lx < 0 ? 'left' : 'right') : Math.abs(ly) > 0.6 ? (ly < 0 ? 'up' : 'down') : null;
-    // D-pad behaves exactly like the arrow keys; the triggers are plain throttle / brake (no double-pull dash)
-    for (const [i, side] of [[PAD.LEFT, 'left'], [PAD.RIGHT, 'right'], [PAD.UP, 'up'], [PAD.DOWN, 'down'], [PAD.RT, 'up'], [PAD.LT, 'down']]) {
-      const trigger = i === PAD.RT || i === PAD.LT;
-      if (down(i)) { if (trigger) held[side] = true; else sideDown(side); }
-      else if (up(i) && !(side === 'up' ? now(PAD.UP) || now(PAD.RT) : side === 'down' ? now(PAD.DOWN) || now(PAD.LT) : false)) sideUp(side);
-    }
+    // D-pad behaves exactly like the arrow keys
+    for (const [i, side] of [[PAD.LEFT, 'left'], [PAD.RIGHT, 'right'], [PAD.UP, 'up'], [PAD.DOWN, 'down']]) { if (down(i)) sideDown(side); else if (up(i)) sideUp(side); }
+    // RT = gas, LT = brake, both analog (a light squeeze is a light touch)
+    const trig = i => { const v = b[i] ? b[i].value : 0; return v < 0.06 ? 0 : Math.min(1, (v - 0.06) / 0.9); };
+    held.padGas = trig(PAD.RT); held.padBrake = trig(PAD.LT);
     if (down(PAD.A)) actionDown(); else if (up(PAD.A)) actionUp();
     // bumpers: LB / RB dash left / right; both together dash forward. A press waits a moment (BUMP_WIN) for the other
     // bumper, so pressing both doesn't fire a side dash first
@@ -5554,7 +5569,7 @@ function pollPad(dt) {
     if (rx || ry) setCam({ yaw: camUser.yaw + rx * dt * 1.6, tilt: camUser.tilt - ry * dt * 0.8 });
     if (down(PAD.VIEW)) setCam(CAM_DEFAULT);
   } else {
-    held.padX = 0; held.padDir = null;
+    held.padX = 0; held.padDir = null; held.padGas = held.padBrake = 0;
     if (held.hold && !now(PAD.A)) actionUp();
     padMenu(b, down, ly, dt);
   }
@@ -6057,7 +6072,7 @@ const TUT_STEPS = [
   { title: 'Steering', text: `Hold ${M(kbd('←') + ' ' + kbd('→'))} or ${kbd('A')} ${kbd('D')} to steer. A quick tap nudges the truck; holding slides it across the road. ${M('Steer to both sides.')}`,
     enter(t) { t.minL = 0; t.maxL = 0; },
     check(t) { t.minL = Math.min(t.minL, lateral); t.maxL = Math.max(t.maxL, lateral); return t.minL < -3.5 && t.maxL > 3.5; } },
-  { title: 'Dash', text: `${M('Double-tap ' + kbd('←') + ' or ' + kbd('→'))} to ${M('dash')} sideways, or ${M('double-tap ' + kbd('↑'))} to lunge forward. Use it to grab a shard that's out of reach or dodge a car at the last moment. ${M('Dash left, right and forward.')}`,
+  { title: 'Dash', text: `${M('Double-tap ' + kbd('←') + ' or ' + kbd('→'))} to ${M('dash')} sideways, or ${M('double-tap ' + kbd('↑'))} to lunge forward. Use it to grab a shard that's out of reach, dodge a car at the last moment — or dash straight into one to knock it flying. ${M('Dash left, right and forward.')}`,
     enter(t) { t.dirs = {}; t.base = stats.dashDirs || {}; stats.dashDirs = {}; },
     check() { const d = stats.dashDirs || {}; return d[-1] && d[1] && d.f; } },
   { title: 'Record shards', text: `${M('Record shards')} — broken vinyl — land on the beats of the music — each one's a piece of the song. Drive through ${M('3 shards')}. Every 8 in a row raises your ${M('multiplier')} (top right).`,
@@ -6102,7 +6117,7 @@ const TUT_STEPS = [
       }
       return (stats.transfers || 0) > t.base;
     } },
-  { title: 'Skill chains', text: `Near misses, grinds, air tricks, drifts, transitions, clips and gold runs all build one ${M('skill chain')} under your truck. Each ${M('different skill')} in it adds ×0.5, catching shards keeps it alive, and it ${M('banks')} when you stop — the bigger the bank, the brighter your truck glows and the more the world joins in. Any hit loses it. ${M('Bank a chain with 2 different skills.')}`,
+  { title: 'Skill chains', text: `Near misses, grinds, air tricks, drifts, transitions, clips and gold runs all build one ${M('skill chain')} under your truck. Each ${M('different skill')} in it adds ×0.5, catching shards keeps it alive, and it ${M('banks')} when you stop — the bigger the bank, the brighter your truck glows and the more the world joins in. Dashing into traffic to knock it flying counts too. Any hit loses it. ${M('Bank a chain with 2 different skills.')}`,
     hud: ['chain'],
     enter(t) { t.base = stats.chains2 || 0; t.next = 0; t.alt = 0; },
     check(t, now) {
@@ -6376,9 +6391,13 @@ function updateWorld(dt, now) {
   const freeDrive = !!run && run.kind === 'drift';                         // drift mode: the speed is all yours
   const syncV = state === 'playing' && !freeDrive ? beatSyncSpeed(now, targetSpeed) : 0;
   tougeLocked = !!syncV && !pace;
-  // throttle and brake are Drift Mode only: everywhere else the music sets the pace (plus the boosts from gold runs and
-  // solos), so the lanterns always arrive on the beat
-  pedal = state === 'playing' && (freeDrive || !!finale) && !tougeLocked && !paceLock ? (held.up ? 1 : 0) - (held.down ? 1 : 0) : 0;
+  // throttle and brake are Drift Mode and Rival Finale only (keys, or the controller's triggers — analog, so half a
+  // trigger is half the pedal); everywhere else the music sets the pace
+  const gas = Math.max(held.up ? 1 : 0, held.padGas || 0), brk = Math.max(held.down ? 1 : 0, held.padBrake || 0);
+  // on a rail (or flying between two) the wheels are off the road: no gas, no brake — the grind just carries the
+  // momentum you hit it with. Perfect transfers kick a little extra on top
+  const onRail = state === 'playing' && (!!grindHold() || !!(trickOut && trickOut.target));
+  pedal = state === 'playing' && (freeDrive || !!finale) && !tougeLocked && !paceLock && !onRail ? gas - brk : 0;   // levels: the music sets the pace (boost is how you push it)
   const dry = state === 'playing' && fuel <= 0;                       // empty tank: engine's dead, coast down to a crawl
   if (state === 'wrecking' || parked) speed = Math.max(0, lerp(speed, 0, 1 - Math.exp(-dt * 2.4)) - 1.5 * dt);   // rolls to a dead stop
   else if (dry) {
@@ -6386,8 +6405,9 @@ function updateWorld(dt, now) {
     if (speed < 2.5 && !refueling) { flash('out of gas', '#f4a08c'); wreck('gas'); }
   }
   else if (tougeLocked) speed = lerp(speed, syncV, 1 - Math.exp(-dt * 0.9));
-  else if (pedal > 0) { const top = topSpeed(); speed = Math.min(Math.max(speed, top), speed + (0.7 + 4.3 * Math.max(0, 1 - Math.pow(speed / top, 1.4))) * (1 - 0.5 * dmg()) * (freeDrive && drifting ? 0.85 : 1) * dt); }   // ~20 s from cruise to top speed; damage halves it at worst; mid-drift the rear is spinning, so less of it reaches the road
-  else if (pedal < 0) speed = Math.max(MIN_SPEED, speed - 32 * dt);
+  else if (onRail) { /* the rail keeps your momentum: no gas, no brake, no loss */ }
+  else if (pedal > 0) { const top = topSpeed(); speed = Math.min(Math.max(speed, top), speed + (0.7 + 4.3 * Math.max(0, 1 - Math.pow(speed / top, 1.4))) * pedal * (1 - 0.5 * dmg()) * (freeDrive && drifting ? 0.85 : 1) * dt); }   // ~20 s from cruise to top speed; damage halves it at worst; mid-drift the rear is spinning, so less of it reaches the road
+  else if (pedal < 0) speed = Math.max(MIN_SPEED, speed + 32 * pedal * dt);
   else if (paceLock) speed = lerp(speed, pace.v, 1 - Math.exp(-dt * 2.5));
   // approaching the solo, cruise becomes the pace that arrives on time; it re-plans
   // around whatever you do, until the last few seconds lock it in
@@ -6396,7 +6416,7 @@ function updateWorld(dt, now) {
   if (!tougeLocked && !paceLock && speed > topSpeed()) speed = lerp(speed, topSpeed(), 1 - Math.exp(-dt * 0.8));   // just got hurt: the engine can't hold the old pace
   if (paceLock) tougeLocked = true;
   // levels never crawl: 80 km/h is the floor (crashes still scrub speed below it for a moment, via `slow` below)
-  if (state === 'playing' && !freeDrive && !finale && !tougeLocked && run && run.kind !== 'tutorial') speed = Math.max(speed, MIN_CRUISE);
+  if (state === 'playing' && !freeDrive && !finale && !tougeLocked && !onRail && run && run.kind !== 'tutorial') speed = Math.max(speed, MIN_CRUISE);   // (not on a rail: there the grind's own momentum rules)
   // crashes, drifting and the verge bleed speed off whatever you're doing
   if (slow < 0.999) speed = lerp(speed, Math.min(speed, MAX_SPEED * slow), 1 - Math.exp(-dt * 3));
   const prevCarS = carS;
