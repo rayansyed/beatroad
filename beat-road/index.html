@@ -1234,10 +1234,10 @@ const grade = new ShaderPass({
       // 4 sunset tunnel, 5 pop duotone
       vec2 uv = vUv; int m = int(tmode + 0.5); float ar = res.x / res.y;
       // the play lane: the road from the horizon down to the truck, where the lanterns, rails and traffic are. The trip
-      // stays mostly out of it (warps, colour shifts and glows all fade to ~25% there) and plays out in the scenery round it
+      // stays mostly out of it (warps, colour shifts and glows all fade to 20% there) and plays out in the scenery round it
       float laneW = 0.07 + 0.3 * clamp((0.7 - vUv.y) / 0.7, 0.0, 1.0);
       float lane = (1.0 - smoothstep(laneW, laneW + 0.13, abs(vUv.x - 0.5))) * (1.0 - smoothstep(0.66, 0.8, vUv.y));
-      float tw = trip * (1.0 - 0.75 * lane);
+      float tw = trip * (1.0 - 0.8 * lane);   // (20% strength over the road)
       if (tw > 0.001) {
         if (m == 1) {
           // the outer screen folds into eight mirrored wedges that turn slowly; the middle (the road ahead) stays put
@@ -1295,13 +1295,11 @@ const grade = new ShaderPass({
           c.rgb = max(mix(vec3(l), c.rgb, 1.0 + tw * 0.6), 0.0);
           c.rgb += mix(vec3(1.0, 0.25, 0.8), vec3(0.2, 0.9, 1.0), 0.5 + 0.5 * sin(ang * 50.265 + time * 2.0)) * tw * smoothstep(0.3, 0.85, r) * (0.16 + kick * 0.5);
         } else if (m == 2) {
-          // VHS: teal highlights, violet shadows, scanlines, grain and a tracking bar rolling down the screen
+          // VHS: teal highlights, violet shadows, scanlines and grain
           c.rgb = mix(c.rgb, c.rgb * vec3(0.92, 1.04, 1.12) + vec3(0.06, 0.0, 0.08) * (1.0 - l), tw);
           c.rgb = mix(c.rgb, hueRot(c.rgb, vUv.y * 2.5 - time * 0.9), tw * 0.3);
           c.rgb *= 1.0 - tw * 0.2 * (0.5 + 0.5 * sin(vUv.y * res.y * 1.6));
           c.rgb += (n2(floor(vUv * res * 0.5) + fract(time) * 91.0) - 0.5) * 0.14 * tw;
-          float bar = fract(vUv.y + time * 0.18);
-          c.rgb += vec3(0.9, 1.0, 1.0) * smoothstep(0.0, 0.03, bar) * (1.0 - smoothstep(0.03, 0.08, bar)) * tw * (0.12 + kick * 0.3);
         } else if (m == 3) {
           // thermal camera: brightness becomes heat, with contour lines crawling up the gradient on the beat
           vec3 h = heat(l * 1.15 + kick * 0.12);
