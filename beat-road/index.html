@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Beat Road</title>
+<title>Beat 街道 (Beat Kaidō)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   /* Helvetica Now Display: used if it's installed, or if the licensed webfont files are dropped into fonts/ */
   @font-face { font-family:'Helvetica Now Display'; font-weight:400; font-style:normal; font-display:swap; src:local('Helvetica Now Display'), local('HelveticaNowDisplay-Regular'), url(fonts/HelveticaNowDisplay-Regular.woff2) format('woff2'); }
@@ -511,6 +513,102 @@
   body.split #hud.splitL #progress { right:-100%; }
   body.split #hud.splitL .roadBanner { left:100%; }
   body.split #hud.splitL #cluster { right:auto; left:20px; }
+  /* ================================================================ main menu: the living room (a 3D scene behind this layer). Only
+     the title, Settings, the invisible spine buttons and the cover card sit on top; the old card list stays in the DOM, hidden,
+     so its buttons still start each mode */
+  #menu { display:block; padding:0; background:none; pointer-events:none; }
+  #menu > .panel { display:none; }
+  #roomUi { position:absolute; inset:0; pointer-events:none; }
+  #roomUi .roomHead { position:absolute; top:22px; left:28px; right:28px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+  #roomUi .roomHead h1 { color:#fff; font-weight:900; text-transform:uppercase; font-size:clamp(36px,6vw,58px); line-height:.95; -webkit-text-stroke:0.07em var(--ink-k); paint-order:stroke fill; margin:0; }
+  #roomUi .roomHead h1 em { color:var(--pop-y); letter-spacing:.04em; }   /* (街道: Kaidō, the old highways) */
+  #roomUi .roomHead .tag { color:#fff6e4; margin:8px 0 0; font-weight:700; text-shadow:0 1px 6px rgba(0,0,0,.6); }
+  #roomUi .roomHead .btn { pointer-events:auto; flex:none; }
+  .spineHot { all:unset; display:block; position:absolute; pointer-events:auto; cursor:pointer; border-radius:3px; }
+  .spineHot:focus-visible, .spineHot.padFocus { outline:3px solid var(--pop-y); outline-offset:2px; box-shadow:none !important; }
+  #coverCard { position:absolute; right:5vw; top:50%; transform:translateY(-50%); width:min(400px, 90vw); max-height:86vh; overflow:auto; pointer-events:auto; padding:22px 24px 20px; }
+  #coverCard .ccKick { font-size:11px; font-weight:900; letter-spacing:.22em; text-transform:uppercase; color:var(--pop-y); }
+  #coverCard h2 { margin:4px 0 10px; }
+  #coverCard p { margin:0 0 12px; line-height:1.55; font-size:14px; color:#e8e2d8; }
+  #ccExtra[data-best]:not([data-best=""])::before { content:attr(data-best); display:inline-block; margin:0 0 12px; padding:1px 8px; background:var(--ink-k); color:var(--pop-y); font-weight:800; font-size:13px; }
+  #coverCard .ccBtns { display:flex; gap:10px; margin-top:6px; }
+  #coverCard .btn:disabled { opacity:.5; cursor:not-allowed; }
+  @media (max-aspect-ratio:9/10) { #coverCard { right:auto; left:50%; top:auto; bottom:14px; transform:translateX(-50%); max-height:46vh; } }
+  /* the CD's solo editor: a waveform you drag across to mark solos, a preview player, the list of solos */
+  #soloEd { z-index:15; }
+  #soloEd .panel { width:min(880px, 100%); }
+  #soloEd .seHead { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; } #soloEd .seHead h2 { margin:0; }
+  #seName { color:#bdb6c8; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+  #seMode { margin:14px 0 12px; }
+  #seWaveWrap { position:relative; border:3px solid #f4f0e8; background:#151219; touch-action:none; }
+  #seWave { display:block; width:100%; height:150px; cursor:crosshair; }
+  #soloEd .seBar { display:flex; align-items:center; gap:12px; margin-top:12px; flex-wrap:wrap; }
+  #seTime { font-variant-numeric:tabular-nums; font-weight:800; color:#f4f0e8; min-width:110px; }
+  #seHint { margin:10px 0 6px; font-size:13px; }
+  #seList { margin:0; padding-left:22px; font-size:14px; max-height:24vh; overflow:auto; }
+  #seList li { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid #3a3442; }
+  #seList li .tm { flex:1; font-variant-numeric:tabular-nums; font-weight:700; }
+  #seList li .mini { all:unset; cursor:pointer; padding:3px 10px; border-radius:4px; background:#3a3442; color:#fff; font-size:12px; font-weight:800; }
+  #soloEd .row { margin-top:14px; }
+  #cdList .mini.solos { width:auto; padding:0 8px; font-weight:800; white-space:nowrap; }
+  /* ================================================================ the campaign: the back of a record sleeve. Dark card stock with
+     a double red rule, the spine lettering up each side, the chapters as a centred track list (a side each, condensed
+     cream lettering with the running time), the story as liner notes, and the credits, barcode and catalogue number */
+  #campaign .campPanel { position:relative; width:min(660px, 100%); padding:30px 44px 26px; border-radius:2px; border:0;
+    background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.035), transparent 60%), repeating-linear-gradient(90deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px), #19171a;
+    box-shadow:inset 0 0 0 10px #19171a, inset 0 0 0 12px #c8392b, inset 0 0 0 16px #19171a, inset 0 0 0 17px #c8392b, 0 30px 80px rgba(0,0,0,.6); color:#efe4c8; }
+  #campaign .sleeveSpine { position:absolute; top:50%; font:600 11px/1 'Oswald', var(--font); letter-spacing:.24em; color:#e3b443; white-space:nowrap; pointer-events:none; }
+  #campaign .sleeveSpine.l { left:24px; transform:translate(-50%, -50%) rotate(-90deg); }
+  #campaign .sleeveSpine.r { right:24px; transform:translate(50%, -50%) rotate(90deg); }
+  #campaign .campTop { margin:0 4px; }
+  #campaign .campTop .btn { padding:5px 12px; font:600 11px 'Oswald', var(--font); letter-spacing:.18em; background:none; color:#efe4c8; border:1px solid #efe4c8; border-radius:0; box-shadow:none; }
+  #campaign .campTop .btn:hover, #campaign .campTop .btn.padFocus { color:#19171a; background:#e3b443; border-color:#e3b443; transform:none; }
+  #campaign .campCount { font:600 11px 'Oswald', var(--font); letter-spacing:.2em; color:#e3b443; }
+  #campaign .sleeveKick, #campaign .side { text-align:center; font:italic 13px Georgia, 'Times New Roman', serif; color:#d8ccb0; letter-spacing:.06em; }
+  #campaign .sleeveKick { margin-top:10px; }
+  #campaign .campTitle { text-align:center; font:700 clamp(40px, 8vw, 58px)/1 'Oswald', var(--font); text-transform:uppercase; letter-spacing:.02em; color:#efe4c8; -webkit-text-stroke:0; text-shadow:none; margin:4px 0 14px; }
+  #campaign .campIntro { columns:2 220px; column-gap:26px; margin:0 6px 6px; }
+  #campaign .campIntro p { font:12px/1.55 Georgia, 'Times New Roman', serif; color:#cfc3a6; margin:0 0 8px; }
+  #campaign .campIntro b { color:#e3b443; font-weight:700; }
+  #campaign .campAgentsRow { max-width:200px; margin:0 auto 8px; column-span:all; opacity:.92; }
+  #campaign .campList { display:block; margin:6px 0 4px; text-align:center; }
+  #campaign .side { margin:14px 0 2px; font-size:12px; }
+  /* a chapter: no card, just the lettering; it lights up gold under the pointer / the controller */
+  #campaign .campList .level { all:unset; display:block; box-sizing:border-box; width:100%; padding:2px 8px 4px; cursor:pointer; text-align:center; border:0 !important; box-shadow:none !important; background:none !important; filter:none; min-height:0; }
+  #campaign .campList .level::before { display:none; }
+  #campaign .campList .level .lvNum { display:none; }
+  #campaign .campList .level b { display:block; font:700 clamp(26px, 5vw, 36px)/1.05 'Oswald', var(--font); text-transform:uppercase; letter-spacing:.01em; color:#efe4c8; -webkit-text-stroke:0; paint-order:normal; text-shadow:none; }
+  #campaign .campList .level .len { font-style:normal; font-weight:500; font-size:.55em; color:#d8ccb0; letter-spacing:.04em; vertical-align:.25em; }
+  #campaign .campList .level .lvInfo { display:block; font:italic 13px Georgia, serif; color:#bfb398; text-shadow:none; opacity:1; margin-top:1px; }
+  #campaign .campList .level .chStatus { display:block; font:600 10px 'Oswald', var(--font); letter-spacing:.18em; text-transform:uppercase; color:#8f8574; margin-top:3px; text-shadow:none; }
+  #campaign .campList .level .chStatus.ok { color:#e3b443; }
+  #campaign .campList .level:hover b, #campaign .campList .level:focus-visible b, #campaign .campList .level.padFocus b { color:#e3b443; }
+  #campaign .campList .level:hover, #campaign .campList .level:focus-visible, #campaign .campList .level.padFocus { transform:none; outline:none; box-shadow:none !important; }
+  #campaign .campList .level.padFocus b::before, #campaign .campList .level:focus-visible b::before { content:'▸ '; }
+  #campaign .campList .level.locked { cursor:not-allowed; filter:none; opacity:.4; }
+  #campaign .campList .level .lockTag { position:static; display:inline-block; margin-top:4px; background:none; border:1px solid #8f8574; color:#bfb398; font:600 10px 'Oswald', var(--font); letter-spacing:.14em; }
+  #campaign .sleeveSmall { margin-top:18px; text-align:center; }
+  #campaign .sleeveSmall p { font:9.5px/1.5 Georgia, serif; color:#a89e88; margin:6px 0 10px; }
+  #campaign .sleeveLogo { width:34px; height:34px; margin:0 auto; border-radius:50%; background:radial-gradient(circle, #e3b443 0 22%, #19171a 23% 27%, #e3b443 28% 31%, #19171a 32% 100%); box-shadow:0 0 0 2px #e3b443; }
+  #campaign .sleeveCode { display:inline-flex; flex-direction:column; align-items:center; gap:2px; padding:5px 8px 3px; background:#f4efe2; }
+  #campaign .sleeveBars { width:150px; height:30px; background:repeating-linear-gradient(90deg, #111 0 2px, transparent 2px 3px, #111 3px 4px, transparent 4px 7px, #111 7px 10px, transparent 10px 11px, #111 11px 12px, transparent 12px 15px); }
+  #campaign .sleeveCode span { font:600 9px 'Oswald', var(--font); letter-spacing:.18em; color:#111; }
+  #campaign .campBrief:not(.hidden) ~ .sleeveSmall, #campaign .campList.hidden + .sleeveSmall { display:none; }
+  @media (max-width:520px) { #campaign .campPanel { padding:26px 30px 22px; } #campaign .sleeveSpine { display:none; } }
+  /* the chapter briefing, on the sleeve itself: no paper insert, no agent — a thin stamp, the chapter, the intercepted memo
+     as typed liner text, the goal in gold, and outlined buttons */
+  #campaign .campBrief { margin:14px 6px 2px; padding:0; border:0; background:none; box-shadow:none; color:#efe4c8; text-align:center; }
+  #campaign .briefHead { display:flex; flex-direction:column; align-items:center; gap:8px; letter-spacing:.2em; }
+  #campaign .briefStamp { border:1px solid #c8392b; color:#d9634f; padding:2px 8px; transform:none; font:600 10px 'Oswald', var(--font); letter-spacing:.22em; }
+  #campaign #briefCh { font:700 clamp(24px, 4.6vw, 32px)/1 'Oswald', var(--font); letter-spacing:.02em; text-transform:uppercase; color:#efe4c8; }
+  #campaign .briefBody { display:block; margin:12px auto 0; max-width:460px; }
+  #campaign .briefAgent { display:none; }
+  #campaign .briefMemo { font:12.5px/1.65 'Courier New', ui-monospace, monospace; color:#cfc3a6; text-align:left; }
+  #campaign .briefGoal { margin-top:12px; font:italic 14px/1.5 Georgia, serif; font-weight:400; color:#e3b443; }
+  #campaign .campBrief .row { justify-content:center; margin-top:16px; display:flex; gap:10px; }
+  #campaign .campBrief .btn { padding:7px 18px; font:600 13px 'Oswald', var(--font); letter-spacing:.18em; text-transform:uppercase; background:none; color:#efe4c8; border:1px solid #efe4c8; border-radius:0; box-shadow:none; }
+  #campaign .campBrief .btn:first-child { background:#e3b443; color:#19171a; border-color:#e3b443; }
+  #campaign .campBrief .btn:hover, #campaign .campBrief .btn.padFocus { transform:none; box-shadow:0 0 0 2px #19171a, 0 0 0 3px #e3b443 !important; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -554,7 +652,7 @@
 
 <div id="menu" class="overlay">
   <div class="panel">
-    <div class="menuHead"><h1>Beat <em>Road</em></h1><button class="btn ghost setBtn" id="btnSettings">⚙ Settings</button></div>
+    <div class="menuHead"><h1>Beat <em>街道</em></h1><button class="btn ghost setBtn" id="btnSettings">⚙ Settings</button></div>
     <p class="tag">Drive through Japan to the beat — collect the record shards your music drops on the road.</p>
     <button class="level tutorial" id="btnTutorial"><span class="lvNum">New here?</span><b>Tutorial</b><span class="lvInfo">Steering & dashing, record shards, gold runs, ramps, grind rails & transfers, skill chains, gas stations, 峠 drifting · ~7 min</span></button>
     <div class="sectionLbl">Campaign</div>
@@ -579,9 +677,23 @@
   </div>
 </div>
 
+<div id="soloEd" class="overlay hidden">
+  <div class="panel">
+    <div class="seHead"><h2>Solos</h2><span id="seName"></span></div>
+    <div class="seg" id="seMode"><span>Solo 峠 passes</span><button data-m="auto">Auto-detect</button><button data-m="manual">Choose my own</button></div>
+    <div id="seWaveWrap"><canvas id="seWave"></canvas></div>
+    <div class="seBar"><button class="btn ghost" id="sePlay">▶ Play</button><span id="seTime">0:00 / 0:00</span><button class="btn ghost" id="seAdd">+ Solo here</button></div>
+    <p class="hint" id="seHint"></p>
+    <ol id="seList"></ol>
+    <div class="row"><button class="btn" id="btnSoloDone">Done</button></div>
+  </div>
+</div>
+
 <div id="campaign" class="overlay hidden">
   <div class="panel campPanel">
+    <div class="sleeveSpine l">BEAT 街道 — TURN IT UP</div><div class="sleeveSpine r">BK-0001 · 33⅓ RPM · STEREO</div>
     <div class="campTop"><button class="btn ghost" id="btnCampBack">‹ Menu</button><span class="campCount" id="campCount"></span></div>
+    <div class="sleeveKick">~ Beat 街道 Records presents ~</div>
     <h2 class="campTitle">Turn It Up</h2>
     <div class="campIntro" id="campIntro">
       <div class="campAgentsRow" id="introAgents"></div>
@@ -590,6 +702,12 @@
       <p>Drive city to city. Blast the music. Collect the <b>record shards</b> the beats knock loose and piece the songs back together — get <b>80% or more</b> in a city and it's yours again, and the road to the next one opens. OmniStream's agents will be watching.</p>
     </div>
     <div class="campList" id="campList"></div>
+    <div class="sleeveSmall" id="sleeveSmall">
+      <div class="sleeveLogo" aria-hidden="true"></div>
+      <p>℗ &amp; © 2026 Beat 街道 Records. Pressed on vinyl, played out loud.<br>All rights of the driver and owner of the recorded work reserved. Unauthorised streaming, subscribing,<br>
+      algorithmic shuffling and silent listening of this record are prohibited. Made in Japan. BK-0001.</p>
+      <div class="sleeveCode"><div class="sleeveBars" aria-hidden="true"></div><span>4 901234 567894</span></div>
+    </div>
     <div class="campBrief hidden" id="campBrief">
       <div class="briefHead"><span class="briefStamp">Intercepted · OmniStream internal</span><span id="briefCh"></span></div>
       <div class="briefBody"><div class="briefAgent" id="briefAgent"></div><div><div class="briefMemo" id="briefMemo"></div><div class="briefGoal" id="briefGoal"></div></div></div>
@@ -601,7 +719,7 @@
 <div id="settings" class="overlay hidden">
   <div class="panel setPanel">
     <div class="setHead"><h2>Settings</h2><button class="btn ghost" id="btnSetClose">Back</button></div>
-    <div class="seg setTabs" id="setTabs"><button data-tab="setOpts" class="on">Options</button><button data-tab="setCtl">Controls</button></div>
+    <div class="seg setTabs" id="setTabs"><button data-tab="setOpts" class="on" data-pad-first="1">Options</button><button data-tab="setCtl">Controls</button></div>
     <div id="setOpts">
     <div class="settings">
       <div class="seg" id="gfxSeg"><span>Graphics</span><button data-q="low">Low</button><button data-q="medium">Medium</button><button data-q="high">High</button></div>
@@ -4008,6 +4126,19 @@ const SFX = {
   block() { if (!sfx) return; const t = ctx.currentTime; blip('square', 180, t, 0.002, 0.12, 0.12, 90); blip('triangle', 760, t, 0.002, 0.05, 0.18, 520); whoosh(t, 0.12, 1800, 400, 0.08); },
   parry() { if (!sfx) return; const t = ctx.currentTime; [1568, 2349, 3136].forEach((f, i) => blip('triangle', f, t + i * 0.012, 0.002, 0.09, 0.7 - i * 0.15)); blip('square', 392, t, 0.002, 0.06, 0.2, 196); },
   drop() { if (!sfx) return; const t = ctx.currentTime; blip('square', 220, t, 0.002, 0.06, 0.08, 110); blip('sine', 1760, t + 0.06, 0.002, 0.03, 0.05); },
+  // the living-room menu: a cardboard flick moving between records / buttons, a soft click pressing one, a sleeve sliding
+  // out of the crate and back, the disc sliding out, and the needle going down (a thump and a little crackle)
+  menuTick() { if (!sfx) return; const t = ctx.currentTime; blip('triangle', 1500, t, 0.002, 0.045, 0.05); whoosh(t, 0.06, 3200, 2200, 0.022); },
+  menuClick() { if (!sfx) return; const t = ctx.currentTime; blip('sine', 660, t, 0.002, 0.08, 0.08, 520); blip('triangle', 1320, t, 0.002, 0.025, 0.05); },
+  sleeveOut() { if (!sfx) return; const t = ctx.currentTime; whoosh(t, 0.34, 700, 2800, 0.11); blip('sine', 150, t + 0.02, 0.004, 0.07, 0.12, 110); },
+  sleeveIn() { if (!sfx) return; const t = ctx.currentTime; whoosh(t, 0.3, 2600, 800, 0.09); blip('sine', 130, t + 0.6, 0.003, 0.09, 0.1, 80); },
+  discOut() { if (!sfx) return; const t = ctx.currentTime; whoosh(t, 0.42, 900, 3600, 0.07); },
+  needle() {
+    if (!sfx) return; const t = ctx.currentTime;
+    blip('sine', 75, t, 0.003, 0.22, 0.2, 45);
+    whoosh(t + 0.05, 1.3, 5200, 4600, 0.012);
+    for (let i = 0; i < 26; i++) blip('square', 2500 + Math.random() * 3500, t + 0.05 + Math.random() * 1.2, 0.001, 0.008 + Math.random() * 0.012, 0.015);
+  },
   boom() { if (!sfx) return; const t = ctx.currentTime; blip('sine', 90, t, 0.004, 0.35, 0.9, 32); blip('triangle', 55, t + 0.02, 0.01, 0.25, 1.1, 28); whoosh(t, 1.1, 2400, 200, 0.3); },
 };
 
@@ -5628,7 +5759,7 @@ function beatSyncSpeed(now, natural) {
   return syncV;
 }
 
-// ---------------------------------------------------------------- solo 峠 (Rock Band-style): one per solo (up to two a song), timed to it
+// ---------------------------------------------------------------- solo 峠 (Rock Band-style): one per solo (two at most found by the analysis; your own CD songs can have as many as you mark), timed to it
 // run.solo = { h0, h1 } in heard (ctx) time. The 峠 can only be laid on road that hasn't been generated yet, so it's
 // committed just past the generated horizon, then the approach paces the car (it becomes the cruise speed; locked for
 // the last few seconds) so you reach the first bend as the solo starts. Inside, beat sync holds the speed the length was sized for.
@@ -6652,13 +6783,13 @@ function pollPad(dt, only = null) {
   } else {
     held.padX = 0; held.padDir = null; held.padGas = held.padBrake = 0;
     if (held.hold && !now(PAD.A)) actionUp();
-    padMenu(b, down, ly, dt);
+    padMenu(b, down, lx, ly, dt);
   }
   pad.prev = b.map(x => x.pressed || x.value > 0.5);
 }
 // menus with the controller: move a highlight over whatever buttons are on screen, A presses, B goes back
-function padMenu(b, down, ly, dt) {
-  const layer = ['settings', 'pause', 'splitResults', 'splitLobby', 'results', 'campaign', 'menu'].map($).find(el => el && !el.classList.contains('hidden'));
+function padMenu(b, down, lx, ly, dt) {
+  const layer = ['soloEd', 'settings', 'pause', 'splitResults', 'splitLobby', 'results', 'campaign', 'menu'].map($).find(el => el && !el.classList.contains('hidden'));
   if (!layer) return;
   if (layer.id === 'splitLobby' && (!lobby || performance.now() - (lobby.joinedAt || 0) < 400)) return;   // a join press isn't a menu press
   if (layer.id === 'splitLobby' && down(PAD.B) && !(lobby.pads[0] && lobby.pads[1])) { closeLobby(); return; }
@@ -6666,20 +6797,43 @@ function padMenu(b, down, ly, dt) {
   if (state === 'paused' && (down(PAD.MENU) || down(PAD.B))) { setPaused(false); return; }
   const items = [...layer.querySelectorAll('button, label.choice, input[type=range]')].filter(el => el.offsetParent && !el.classList.contains('hidden') && !el.classList.contains('locked') && !el.disabled);
   if (!items.length) return;
-  let i = items.indexOf(pad.focus);
-  if (i < 0) i = 0;
-  const dir = down(PAD.DOWN) || (ly > 0.5 && pad.navT <= 0) ? 1 : down(PAD.UP) || (ly < -0.5 && pad.navT <= 0) ? -1 : 0;
-  pad.navT = Math.abs(ly) > 0.5 ? (dir ? 0.22 : pad.navT - dt) : 0;
-  if (dir || items[i] !== pad.focus) { i = (i + dir + items.length) % items.length; setPadFocus(items[i]); }
-  const f = pad.focus;
-  if (f && f.type === 'range' && (down(PAD.LEFT) || down(PAD.RIGHT))) { f.value = +f.value + (down(PAD.RIGHT) ? 1 : -1) * (+f.step || 1); f.dispatchEvent(new Event('input', { bubbles: true })); }
+  // the D-pad / left stick moves the highlight that way on screen, to the nearest item in that direction (records in a
+  // row go left and right, stacked cards up and down); on a slider, left / right set its value instead
+  const stick = Math.abs(lx) > 0.5 || Math.abs(ly) > 0.5;
+  let dx = down(PAD.RIGHT) ? 1 : down(PAD.LEFT) ? -1 : 0, dy = down(PAD.DOWN) ? 1 : down(PAD.UP) ? -1 : 0;
+  if (!dx && !dy && stick && pad.navT <= 0) { if (Math.abs(lx) > Math.abs(ly)) dx = Math.sign(lx); else dy = Math.sign(ly); }
+  pad.navT = stick ? (dx || dy ? 0.22 : pad.navT - dt) : 0;
+  if (!items.includes(pad.focus)) { setPadFocus(items.find(el => el.dataset.padFirst) || items[0]); dx = dy = 0; }   // (a screen can say where the highlight starts)
+  let f = pad.focus;
+  if (f.type === 'range' && dx) { f.value = +f.value + dx * (+f.step || 1); f.dispatchEvent(new Event('input', { bubbles: true })); dx = 0; }
+  if (dx || dy) { const next = padStep(items, f, dx, dy); if (next) setPadFocus(next); }
+  f = pad.focus;
   if (down(PAD.A) && f && f.type !== 'range') f.click();
   if (down(PAD.B)) {
-    const back = ['btnBriefBack', 'btnCampBack', 'btnMenu'].map($).find(el => el && el.offsetParent && layer.contains(el));
+    const back = ['btnSoloDone', 'btnBriefBack', 'btnCampBack', 'btnMenu', 'btnCoverBack'].map($).find(el => el && el.offsetParent && layer.contains(el));
     if (back) back.click();
   }
 }
+// the nearest item from `from` in direction (dx, dy): first anything in line with it (same row going left / right, same
+// column going up / down), nearest first; with nothing in line, the nearest within ~70° of the direction
+function padStep(items, from, dx, dy) {
+  const a = from.getBoundingClientRect(), ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+  let inLine = null, inS = Infinity, near = null, nearS = Infinity;
+  for (const el of items) {
+    if (el === from) continue;
+    const r = el.getBoundingClientRect(), vx = r.left + r.width / 2 - ax, vy = r.top + r.height / 2 - ay;
+    const along = vx * dx + vy * dy, across = Math.abs(vx * dy - vy * dx);
+    if (along <= 4) continue;
+    const overlap = dx ? Math.min(a.bottom, r.bottom) - Math.max(a.top, r.top) : Math.min(a.right, r.right) - Math.max(a.left, r.left);
+    if (overlap > 2 && along < inS) { inS = along; inLine = el; }
+    if (across <= along * 3 && along * 2 + across < nearS) { nearS = along * 2 + across; near = el; }
+  }
+  return inLine || near;
+}
+// drop the highlight (the next pad press puts it back where the screen starts it)
+function padUnfocus() { if (pad.focus) pad.focus.classList.remove('padFocus'); pad.focus = null; }
 function setPadFocus(el) {
+  if (pad.focus && pad.focus !== el) SFX.menuTick();   // (moving the highlight)
   if (pad.focus) pad.focus.classList.remove('padFocus');
   pad.focus = el; el.classList.add('padFocus');
   try { el.focus({ preventScroll: true }); } catch {}
@@ -6717,13 +6871,13 @@ $('btnResume').onclick = () => setPaused(false);
 let setFrom = null;
 function openSettings(from) {
   setFrom = from; $(from).classList.add('hidden'); $('settings').classList.remove('hidden');
-  pad.focus = null;
+  padUnfocus();
 }
 function closeSettings() {
   if ($('settings').classList.contains('hidden')) return false;
   $('settings').classList.add('hidden');
   if (setFrom && (setFrom !== 'pause' || state === 'paused')) $(setFrom).classList.remove('hidden');
-  setFrom = null; pad.focus = null; return true;
+  setFrom = null; padUnfocus(); return true;
 }
 $('btnSettings').onclick = () => openSettings('menu');
 $('btnSplit').onclick = () => openLobby();
@@ -6790,6 +6944,18 @@ function agentSquad(n = 5) {
   return `<svg viewBox="-6 -12 214 150" aria-hidden="true">${pos.map(([x, y], i) => `<g transform="translate(${x} ${y})"><ellipse cx="38" cy="92" rx="14" ry="3" fill="rgba(0,0,0,.25)"/>${agentSVG(i)}</g>`).join('')}</svg>`;
 }
 const agentSolo = pose => `<svg viewBox="-4 -12 84 102" aria-hidden="true">${agentSVG(pose)}</svg>`;
+// each chapter's running time, read from the track's own header the first time the sleeve's shown
+const trackLens = {};
+function trackLen(L) {
+  if (!L.track) return '';
+  if (trackLens[L.id] === undefined) {
+    trackLens[L.id] = '';
+    const a = new Audio(); a.preload = 'metadata';
+    a.onloadedmetadata = () => { if (isFinite(a.duration)) { trackLens[L.id] = fmtTime(a.duration); renderCampaign(); } };
+    a.src = L.track;
+  }
+  return trackLens[L.id];
+}
 function renderCampaign() {
   const done = CAMPAIGN.filter((_, i) => chCleared(i)).length;
   $('campProg').textContent = `${done} / ${CAMPAIGN.length} cities`;
@@ -6797,8 +6963,9 @@ function renderCampaign() {
   $('campList').innerHTML = CAMPAIGN.map((c, i) => {
     const L = LEVELS[c.level], open = chUnlocked(i), best = chBest(i);
     const status = !open ? '' : chCleared(i) ? `<span class="chStatus ok">✓ Won back · best ${best}% shards</span>` : best !== undefined ? `<span class="chStatus">Best ${best}% · need ${UNLOCK_PCT}%</span>` : `<span class="chStatus">Need ${UNLOCK_PCT}% of the record shards</span>`;
-    return `<button class="level ${L.cls}" data-ch="${i}" ${open ? '' : 'aria-disabled="true"'}${open ? '' : ' tabindex="-1"'}>
-      <span class="lvNum">Chapter ${i + 1} · ${c.where}</span><b>${c.city}</b><span class="lvInfo">♪ ${L.name}${L.sub ? ' — ' + L.sub : ''}</span>${status}
+    const len = trackLen(L);
+    return `<div class="side">~ ${'ABCDEFGH'[i]} ~</div><button class="level ${L.cls}" data-ch="${i}" ${open ? '' : 'aria-disabled="true"'}${open ? '' : ' tabindex="-1"'}>
+      <span class="lvNum">Chapter ${i + 1} · ${c.where}</span><b>${c.city}<i class="len">${len ? ' – ' + len : ''}</i></b><span class="lvInfo">${L.name}${L.sub ? ' · ' + L.sub : ''}</span>${status}
       ${open ? '' : `<span class="lockTag">🔒 ${UNLOCK_PCT}% in ch. ${i}</span>`}</button>`;
   }).join('');
   $('campList').querySelectorAll('.level').forEach(b => {
@@ -7063,7 +7230,7 @@ function renderCD() {
   $('cdSummary').textContent = `${cd.length} track${cd.length === 1 ? '' : 's'}${total ? ' · ' + fmtTime(total) : ''}`;
   $('cdList').innerHTML = cd.map((t, i) => `<li><span class="nm">${t.name.replace(/[<>&]/g, '')}</span><span class="st ${t.status}">${
     t.status === 'ready' ? fmtTime(t.buffer.duration) + ' · ' + Math.round(t.bpm) + ' bpm' : t.status === 'analyzing' ? 'analyzing ' + Math.round(t.progress * 100) + '%' : t.status === 'error' ? 'can’t read' : 'queued'
-  }</span><button class="mini" data-up="${i}" ${i ? '' : 'disabled'} aria-label="Move up">↑</button><button class="mini" data-rm="${i}" aria-label="Remove">✕</button></li>`).join('');
+  }</span>${t.status === 'ready' ? `<button class="mini solos" data-solo="${i}" aria-label="Solos">Solos · ${t.soloMode === 'manual' ? 'mine' : 'auto'} ${trackSolos(t).length}</button>` : ''}<button class="mini" data-up="${i}" ${i ? '' : 'disabled'} aria-label="Move up">↑</button><button class="mini" data-rm="${i}" aria-label="Remove">✕</button></li>`).join('');
 }
 async function processCD() {
   if (cdWorking) return;
@@ -7103,7 +7270,7 @@ function beginTrack(i, src) {
   if (i > 0) { try { run.node.disconnect(); } catch {} src.connect(analyser); src.connect(delay); run.node = src; }
   run.index = i; run.beats = t.beats; run.bi = 0;
   run.trackStart = ctx.currentTime + 0.05; run.start = run.trackStart; run.duration = t.buffer.duration;
-  run.soloQ = (t.solos || (t.solo ? [t.solo] : [])).map(so => makeSolo(run.trackStart + so.t0, run.trackStart + so.t1, 60 / t.bpm));
+  run.soloQ = trackSolos(t).map(so => makeSolo(run.trackStart + so.t0, run.trackStart + so.t1, 60 / t.bpm));
   run.solo = run.soloQ.shift() || null;
   src.start(run.trackStart);
   $('srcLabel').textContent = `CD · ${i + 1}/${run.cd.length} · ${t.name}`;
@@ -7119,12 +7286,134 @@ function beginTrack(i, src) {
     beginTrack(i + 1, makeTrackSource(next));
   };
 }
+// ---- solos for your own songs: the analysis's picks (auto), or your own (manual), marked on the song's waveform.
+// Each solo becomes a 峠 pass, so they're kept to what the road can fit: at least 4 s long, starting 6 s or more into
+// the song, and 8 s or more apart (closer ones join into one)
+const SOLO_MIN = 4, SOLO_FIRST = 6, SOLO_GAP = 8;
+const trackSolos = t => t.soloMode === 'manual' ? t.manualSolos : (t.solos || (t.solo ? [t.solo] : []));
+function tidySolos(list, dur) {
+  const out = [];
+  for (const so of list.map(s => ({ t0: Math.max(SOLO_FIRST, Math.min(s.t0, s.t1)), t1: Math.min(dur, Math.max(s.t0, s.t1)) })).sort((a, b) => a.t0 - b.t0)) {
+    if (so.t1 - so.t0 < SOLO_MIN) continue;
+    const last = out[out.length - 1];
+    if (last && so.t0 - last.t1 < SOLO_GAP) last.t1 = Math.max(last.t1, so.t1); else out.push(so);
+  }
+  return out;
+}
+const se = { t: null, at: 0, src: null, playAt: 0, playFrom: 0, drag: null, raf: 0 };
+function soloPeaks(t) {
+  if (t.peaks) return t.peaks;
+  const d = t.buffer.getChannelData(0), N = 1200, per = Math.floor(d.length / N), pk = new Float32Array(N);
+  for (let i = 0; i < N; i++) { let m = 0; for (let j = i * per, e = j + per; j < e; j += 8) { const v = Math.abs(d[j]); if (v > m) m = v; } pk[i] = m; }
+  return (t.peaks = pk);
+}
+function openSoloEd(t) {
+  if (!t || t.status !== 'ready') return;
+  ensureAudio(); se.t = t; se.at = 0;
+  $('seName').textContent = t.name;
+  $('soloEd').classList.remove('hidden'); padUnfocus();
+  drawSoloEd(); seLoop();
+}
+function closeSoloEd() { seStop(); cancelAnimationFrame(se.raf); $('soloEd').classList.add('hidden'); padUnfocus(); se.t = null; renderCD(); }
+function seNow() { return se.src ? Math.min(se.t.buffer.duration, se.playFrom + ctx.currentTime - se.playAt) : se.at; }
+function seStop() { if (se.src) { se.at = seNow(); try { se.src.stop(); } catch {} se.src.disconnect(); se.src = null; } $('sePlay').textContent = '▶ Play'; }
+function sePlay(from = se.at) {
+  seStop(); ensureAudio();
+  const src = ctx.createBufferSource(); src.buffer = se.t.buffer; src.connect(ctx.destination);   // (straight out: not the truck's speakers)
+  se.playFrom = Math.max(0, Math.min(from, se.t.buffer.duration - 0.05)); se.playAt = ctx.currentTime; src.start(0, se.playFrom);
+  src.onended = () => { if (se.src === src) seStop(); };
+  se.src = src; $('sePlay').textContent = '❚❚ Pause';
+}
+function seLoop() { se.raf = requestAnimationFrame(seLoop); if (se.src) drawSoloEd(); }
+function drawSoloEd() {
+  const t = se.t; if (!t) return;
+  const cv = $('seWave'), dpr = Math.min(devicePixelRatio, 2), W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  const dur = t.buffer.duration, X = s => s / dur * W, pk = soloPeaks(t), manual = t.soloMode === 'manual';
+  // the solos: gold bands with handles (manual) or a dimmer gold (auto picks)
+  for (const so of trackSolos(t)) {
+    g.fillStyle = manual ? 'rgba(255,210,63,.28)' : 'rgba(255,210,63,.16)'; g.fillRect(X(so.t0), 0, X(so.t1) - X(so.t0), H);
+    if (manual) { g.fillStyle = '#ffd23f'; g.fillRect(X(so.t0) - 2, 0, 4, H); g.fillRect(X(so.t1) - 2, 0, 4, H); }
+  }
+  if (se.drag && se.drag.kind === 'new') { g.fillStyle = 'rgba(53,224,255,.3)'; g.fillRect(X(Math.min(se.drag.a, se.drag.b)), 0, Math.abs(X(se.drag.b) - X(se.drag.a)), H); }
+  // the waveform
+  g.fillStyle = '#e8e2d8';
+  for (let x = 0; x < W; x++) { const v = pk[Math.min(pk.length - 1, Math.floor(x / W * pk.length))], h = Math.max(1, v * (H - 24) * 0.95); g.fillRect(x, (H - 12) / 2 - h / 2, 1, h); }
+  // minute / 30 s ticks along the bottom
+  g.fillStyle = '#8f879c'; g.font = '700 10px ' + getComputedStyle(document.body).fontFamily; g.textBaseline = 'bottom';
+  for (let s = 0; s <= dur; s += 30) { g.fillRect(X(s), H - 12, 1, 6); if (s % 60 === 0) g.fillText(fmtTime(s), X(s) + 3, H); }
+  // the playhead
+  const now = seNow(); g.fillStyle = '#35e0ff'; g.fillRect(X(now) - 1, 0, 2, H);
+  $('seTime').textContent = `${fmtTime(now)} / ${fmtTime(dur)}`;
+  if (!se.src) syncSoloUi();
+}
+function syncSoloUi() {
+  const t = se.t, manual = t.soloMode === 'manual', list = trackSolos(t);
+  for (const b of $('seMode').querySelectorAll('button')) b.classList.toggle('on', b.dataset.m === (manual ? 'manual' : 'auto'));
+  $('seAdd').style.display = manual ? '' : 'none';
+  $('seHint').textContent = manual
+    ? 'Drag across the waveform to mark a solo, drag a gold edge to adjust it, click to move the playhead. Solos need 8 s between them (closer ones join up).'
+    : list.length ? `Found ${list.length} solo${list.length > 1 ? 's' : ''} (the gold). Choose my own to change them, or add more.` : 'No solo found in this song. Choose my own to mark some.';
+  const html = list.map((so, i) => `<li><span class="tm">Solo ${i + 1} · ${fmtTime(so.t0)} – ${fmtTime(so.t1)} <small>(${Math.round(so.t1 - so.t0)} s)</small></span><button class="mini" data-hear="${i}">▶ Hear</button>${manual ? `<button class="mini" data-del="${i}" aria-label="Remove solo ${i + 1}">✕</button>` : ''}</li>`).join('');
+  if ($('seList').innerHTML !== html) $('seList').innerHTML = html;
+}
+const seTimeAt = e => { const r = $('seWave').getBoundingClientRect(); return THREE.MathUtils.clamp((e.clientX - r.left) / r.width, 0, 1) * se.t.buffer.duration; };
+$('seWave').addEventListener('pointerdown', e => {
+  if (!se.t) return;
+  $('seWave').setPointerCapture(e.pointerId);
+  const at = seTimeAt(e), px = se.t.buffer.duration / $('seWave').getBoundingClientRect().width;
+  if (se.t.soloMode === 'manual') {
+    const list = se.t.manualSolos;
+    for (const so of list) for (const edge of ['t0', 't1']) if (Math.abs(so[edge] - at) < px * 8) { se.drag = { kind: 'edge', so, edge, x0: e.clientX }; return; }
+    se.drag = { kind: 'new', a: at, b: at, x0: e.clientX };
+  } else se.drag = { kind: 'seek', x0: e.clientX };
+});
+$('seWave').addEventListener('pointermove', e => {
+  if (!se.drag) return;
+  const at = seTimeAt(e);
+  if (se.drag.kind === 'edge') se.drag.so[se.drag.edge] = at; else if (se.drag.kind === 'new') se.drag.b = at;
+  drawSoloEd();
+});
+$('seWave').addEventListener('pointerup', e => {
+  const d = se.drag; se.drag = null; if (!d || !se.t) return;
+  const t = se.t, at = seTimeAt(e), moved = Math.abs(e.clientX - d.x0) > 4;
+  if (d.kind === 'new' && moved) t.manualSolos.push({ t0: Math.min(d.a, d.b), t1: Math.max(d.a, d.b) });
+  if (!moved) { se.at = at; if (se.src) sePlay(at); }
+  if (t.soloMode === 'manual') t.manualSolos = tidySolos(t.manualSolos, t.buffer.duration);
+  drawSoloEd();
+});
+$('seMode').onclick = e => {
+  const m = e.target.dataset?.m; if (!m || !se.t) return;
+  const t = se.t;
+  if (m === 'manual' && t.soloMode !== 'manual') t.manualSolos = tidySolos((t.solos || (t.solo ? [t.solo] : [])).map(s => ({ ...s })), t.buffer.duration);   // start from the auto picks
+  t.soloMode = m; drawSoloEd();
+};
+$('sePlay').onclick = () => { if (se.src) seStop(); else sePlay(); drawSoloEd(); };
+$('seAdd').onclick = () => {
+  const t = se.t, at = seNow();
+  t.manualSolos = tidySolos([...t.manualSolos, { t0: at, t1: Math.min(t.buffer.duration, at + 20) }], t.buffer.duration); drawSoloEd();
+};
+$('seList').onclick = e => {
+  const t = se.t, h = e.target.dataset?.hear, d = e.target.dataset?.del;
+  if (h !== undefined) { se.at = Math.max(0, trackSolos(t)[+h].t0 - 2); sePlay(); }
+  else if (d !== undefined) { t.manualSolos.splice(+d, 1); }
+  drawSoloEd();
+};
+$('btnSoloDone').onclick = closeSoloEd;
+addEventListener('keydown', e => {
+  if ($('soloEd').classList.contains('hidden')) return;
+  if (e.key === 'Escape') { closeSoloEd(); e.stopImmediatePropagation(); }
+  else if (e.code === 'Space') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) $('sePlay').click(); }
+}, true);
+addEventListener('resize', () => { if (se.t) drawSoloEd(); });
 $('fileIn').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) addToCD(fs); };
 $('fileAdd').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) addToCD(fs); };
 $('btnPlayCD').onclick = () => playCD();
 $('btnClearCD').onclick = () => { cd.length = 0; renderCD(); };
 $('cdList').onclick = e => {
-  const up = e.target.dataset?.up, rm = e.target.dataset?.rm;
+  const up = e.target.dataset?.up, rm = e.target.dataset?.rm, so = e.target.dataset?.solo;
+  if (so !== undefined) { openSoloEd(cd[+so]); return; }
   if (up !== undefined && +up > 0) { const i = +up; [cd[i - 1], cd[i]] = [cd[i], cd[i - 1]]; }
   else if (rm !== undefined) cd.splice(+rm, 1);
   else return;
@@ -8295,6 +8584,396 @@ function endSplit(toMenu = false) {
   $('srP1').classList.toggle('win', win === 1); $('srP2').classList.toggle('win', win === 2);
   $('splitResults').classList.remove('hidden');
 }
+// ---------------------------------------------------------------- the main menu: a Japanese living room
+// Tatami, shoji glowing with late sun, a low teak console with the truck's walnut turntable and speakers on it, and a
+// teak crate of records — one per game mode, spine out. Pick a spine and its sleeve comes out to show the cover (the
+// card beside it has the blurb and Play); Play slides the disc out onto the platter, drops the arm, and starts the
+// mode through its own menu button. The room is its own scene, drawn through the same cel shading, ink and grade.
+const roomScene = new THREE.Scene();
+roomScene.background = new THREE.Color('#0b0d15');
+const roomCam = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.05, 40);
+const ROOM_MODES = [
+  { id: 'btnTutorial', title: 'Tutorial', kanji: '練習', kicker: 'New here?', cols: ['#1d6b4a', '#3fae74', '#86e34f'], label: '#86e34f' },
+  { id: 'btnCampaign', title: 'Turn It Up', kanji: '物語', kicker: 'Campaign', cols: ['#141218', '#3a6ee0', '#35e0ff'], label: '#35e0ff', prog: 'campProg' },
+  { id: 'btnDrift', title: 'Drift Mode', kanji: '峠', kicker: 'Endless', cols: ['#3a1f17', '#d9822b', '#f2c46a'], label: '#f08a24', best: 'bestDrift' },
+  { id: 'btnRivals', title: 'Rival Finale', kanji: '決戦', kicker: 'Battle', cols: ['#141218', '#ff3d3d', '#ffd23f'], label: '#e8432e', best: 'bestRivals' },
+  { id: 'btnSplit', title: '2 Player', kanji: '二人', kicker: '2 players · 2 controllers', cols: ['#2a6fdb', '#3a2f6e', '#ff7a3d'], label: '#e45a9a' },
+  { id: 'btnRails', title: 'Rail Park', kanji: '鉄', kicker: 'Coming soon', cols: ['#26262b', '#d8262c', '#f1eee6'], label: '#8e9aa6', soon: true },
+  { id: 'cd', title: 'Burn a CD', kanji: '自作', kicker: 'Your own music', cols: ['#e9e2d0', '#c8643b', '#2b2a27'], label: '#e9e2d0', cd: true,
+    info: 'Pick one or more songs (MP3, WAV, M4A, OGG, FLAC). Each is analysed first so record shards land on its beats, then the road runs through every region.' },
+];
+for (const m of ROOM_MODES) if (!m.info) m.info = $(m.id)?.querySelector('.lvInfo')?.textContent || '';
+
+// ---- the room's surfaces, drawn on canvases like the rest of the game's textures
+const roomTex = {
+  tatami: canvasTex(256, 512, g => {
+    g.fillStyle = '#c8bd84'; g.fillRect(0, 0, 256, 512);
+    for (let y = 0; y < 512; y += 3) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '90,80,30' : '255,250,200'},${0.06 + Math.random() * 0.08})`; g.fillRect(0, y, 256, 1.5); }   // woven rush
+    g.fillStyle = '#2d3527'; g.fillRect(0, 0, 18, 512); g.fillRect(238, 0, 18, 512);                                                // the cloth borders (heri)
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, 0, 256, 3); g.fillRect(0, 509, 256, 3);
+  }),
+  shoji: canvasTex(256, 512, g => {
+    const gr = g.createLinearGradient(0, 0, 0, 512); gr.addColorStop(0, '#fff3d8'); gr.addColorStop(1, '#f2d9a8'); g.fillStyle = gr; g.fillRect(0, 0, 256, 512);
+    g.fillStyle = '#6b4526';
+    for (let x = 0; x <= 256; x += 64) g.fillRect(x - 3, 0, 6, 512);                                                                 // kumiko lattice
+    for (let y = 0; y <= 512; y += 72) g.fillRect(0, y - 3, 256, 6);
+    g.fillRect(0, 0, 14, 512); g.fillRect(242, 0, 14, 512); g.fillRect(0, 0, 256, 14); g.fillRect(0, 470, 256, 42);                 // the frame, a solid kick panel low down
+  }),
+  plaster: canvasTex(256, 256, g => { g.fillStyle = '#e3d3b2'; g.fillRect(0, 0, 256, 256); for (let i = 0; i < 2600; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '120,95,60' : '255,250,235'},.07)`; g.fillRect(Math.random() * 256, Math.random() * 256, 2, 2); } }),
+  teak: canvasTex(256, 256, g => {
+    g.fillStyle = '#b06a32'; g.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 60; i++) {
+      const y0 = Math.random() * 256, a = 1 + Math.random() * 4, f = 0.008 + Math.random() * 0.02, ph = Math.random() * 6;
+      g.strokeStyle = Math.random() < 0.65 ? `rgba(90,45,15,${0.12 + Math.random() * 0.22})` : `rgba(230,160,90,${0.1 + Math.random() * 0.15})`;
+      g.lineWidth = 0.6 + Math.random() * 1.6; g.beginPath();
+      for (let x = 0; x <= 256; x += 8) { const y = y0 + Math.sin(x * f + ph) * a; x ? g.lineTo(x, y) : g.moveTo(x, y); }
+      g.stroke();
+    }
+  }),
+  scroll: canvasTex(128, 384, g => {
+    g.fillStyle = '#5b3a2a'; g.fillRect(0, 0, 128, 384); g.fillStyle = '#efe6cf'; g.fillRect(12, 26, 104, 320);
+    g.fillStyle = '#1d1a18'; g.font = `900 92px ${JP_SERIF}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('音', 64, 130); g.fillText('楽', 64, 240);
+    g.fillStyle = '#c8302a'; g.fillRect(84, 300, 18, 18);                                                                             // a red seal
+  }),
+};
+roomTex.tatami.wrapS = roomTex.tatami.wrapT = THREE.RepeatWrapping; roomTex.tatami.repeat.set(6 / 0.9, 4.4 / 1.8);
+roomTex.plaster.wrapS = roomTex.plaster.wrapT = THREE.RepeatWrapping; roomTex.plaster.repeat.set(3, 1.5);
+const teakMat = new THREE.MeshStandardMaterial({ map: roomTex.teak, roughness: 0.5 });
+const darkWoodMat = new THREE.MeshStandardMaterial({ color: '#4a2f1c', roughness: 0.7 });
+const shojiMat = new THREE.MeshStandardMaterial({ map: roomTex.shoji, emissiveMap: roomTex.shoji, emissive: '#8aa2d8', emissiveIntensity: 0.22, roughness: 0.9, color: '#5d6684' });   // moonlight through the paper (dim, cool)
+// the spines and covers: each mode's colours, its name, and a kanji
+function sleeveArt(m, w, h, spine) {
+  return canvasTex(w, h, g => {
+    const gr = spine ? g.createLinearGradient(0, h, 0, 0) : g.createLinearGradient(0, h, w, 0);
+    m.cols.forEach((c, i) => gr.addColorStop(i / (m.cols.length - 1), c)); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    const dark = m.cd ? '#2b2a27' : '#141218', light = m.cd ? '#2b2a27' : '#ffffff';
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+    if (spine) {
+      g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(0, 0, w, 4); g.fillRect(0, h - 4, w, 4);
+      g.font = `900 ${w * 0.5}px ${JP_SERIF}`; g.fillStyle = light; g.fillText(m.kanji[0], w / 2, w * 0.6);                    // a kanji up top
+      g.save(); g.translate(w / 2, h * 0.56); g.rotate(Math.PI / 2);                                                            // the name runs down the spine
+      g.font = `900 ${w * 0.52}px ${getComputedStyle(document.body).fontFamily}`;
+      const t = m.title.toUpperCase(); let size = w * 0.52; while (g.measureText(t).width > h * 0.72 && size > 10) { size -= 2; g.font = `900 ${size}px ${getComputedStyle(document.body).fontFamily}`; }
+      if (!m.cd) { g.lineWidth = size * 0.22; g.strokeStyle = dark; g.strokeText(t, 0, 2); }
+      g.fillStyle = light; g.fillText(t, 0, 2); g.restore();
+      g.font = `800 ${w * 0.2}px ${getComputedStyle(document.body).fontFamily}`; g.fillStyle = m.cd ? '#2b2a27' : 'rgba(255,255,255,.8)'; g.fillText('BK', w / 2, h - w * 0.4);
+    } else {
+      // the cover: a big sun, the road running into it, the kanji, and the title
+      const S = w, fam = getComputedStyle(document.body).fontFamily;
+      g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.arc(S * 0.62, S * 0.4, S * 0.26, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(0,0,0,.22)'; g.beginPath(); g.moveTo(S * 0.56, S * 0.52); g.lineTo(S * 0.68, S * 0.52); g.lineTo(S * 0.98, S); g.lineTo(S * 0.18, S); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = S * 0.012; g.setLineDash([S * 0.04, S * 0.04]); g.beginPath(); g.moveTo(S * 0.62, S * 0.53); g.lineTo(S * 0.6, S); g.stroke(); g.setLineDash([]);
+      g.font = `900 ${S * 0.3}px ${JP_SERIF}`; g.fillStyle = m.cd ? 'rgba(43,42,39,.22)' : 'rgba(255,255,255,.3)'; g.textAlign = 'right'; g.fillText(m.kanji, S * 0.94, S * 0.2);
+      g.textAlign = 'left'; g.font = `800 ${S * 0.04}px ${fam}`; g.fillStyle = light; g.fillText('BEAT KAIDŌ RECORDS', S * 0.06, S * 0.07);
+      let size = S * 0.15; g.font = `900 ${size}px ${fam}`; const t = m.title.toUpperCase();
+      while (g.measureText(t).width > S * 0.88 && size > 20) { size -= 4; g.font = `900 ${size}px ${fam}`; }
+      if (!m.cd) { g.lineWidth = size * 0.16; g.strokeStyle = dark; g.strokeText(t, S * 0.06, S * 0.84); }
+      g.fillStyle = light; g.fillText(t, S * 0.06, S * 0.84);
+      g.font = `700 ${S * 0.04}px ${fam}`; g.fillText(m.kicker.toUpperCase(), S * 0.06, S * 0.93);
+    }
+  });
+}
+const sleeveBack = new THREE.MeshStandardMaterial({ color: '#e9e2d0', roughness: 0.8 });
+const roomBrass = new THREE.MeshStandardMaterial({ color: '#c9a66b', metalness: 0.3, roughness: 0.45 }), roomCone = new THREE.MeshStandardMaterial({ color: '#232127', roughness: 0.7 });
+const sleeveEdge = new THREE.MeshStandardMaterial({ color: '#d8cfba', roughness: 0.8 });
+
+// ---- building it
+const room = { sleeves: [], hot: -1, sel: -1, phase: 'browse', tweens: [], platter: null, platRec: null, arm: null, armRest: 0.55, armPlay: 0, cones: [], shown: false, coverAt: new THREE.Vector3() };
+function roomBox(w, h, d, mat, x, y, z, parent = roomScene, cast = true) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = true; parent.add(m); return m;
+}
+function buildRoom() {
+  // floor, walls, the shoji wall behind the console, a beam, posts
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(6, 4.4), new THREE.MeshStandardMaterial({ map: roomTex.tatami, roughness: 0.95 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, 0); floor.receiveShadow = true; roomScene.add(floor);
+  const plaster = new THREE.MeshStandardMaterial({ map: roomTex.plaster, roughness: 0.95 });
+  roomBox(6, 2.6, 0.1, plaster, 0, 1.3, -2.25, roomScene, false);
+  roomBox(0.1, 2.6, 4.4, plaster, -3, 1.3, 0, roomScene, false);
+  roomBox(0.1, 2.6, 4.4, plaster, 3, 1.3, 0, roomScene, false);
+  for (let i = 0; i < 5; i++) roomBox(0.9, 2.0, 0.03, shojiMat, -1.8 + i * 0.9, 1.0, -2.18, roomScene, false);   // the shoji, lit from behind
+  roomBox(6, 0.14, 0.14, darkWoodMat, 0, 2.07, -2.12);                                                            // the lintel above them
+  for (const x of [-2.3, 2.3]) roomBox(0.12, 2.6, 0.12, darkWoodMat, x, 1.3, -2.12);
+  roomBox(0.12, 2.6, 0.12, darkWoodMat, -2.9, 1.3, 0.6);
+  roomBox(6, 0.05, 0.06, darkWoodMat, 0, 0.025, -2.16);
+  // a hanging scroll on the side wall
+  const scroll = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 1.26), new THREE.MeshStandardMaterial({ map: roomTex.scroll, roughness: 0.9 }));
+  scroll.rotation.y = Math.PI / 2; scroll.position.set(-2.94, 1.35, -0.6); roomScene.add(scroll);
+  // the low teak console: sliding doors, round pulls, short legs
+  const con = new THREE.Group(); con.position.set(0.35, 0, -1.78); roomScene.add(con);
+  roomBox(2.1, 0.42, 0.46, teakMat, 0, 0.29, 0, con);
+  roomBox(2.14, 0.03, 0.5, teakMat, 0, 0.515, 0, con);
+  for (const x of [-0.98, 0.98]) for (const z of [-0.18, 0.18]) roomBox(0.05, 0.08, 0.05, darkWoodMat, x, 0.04, z, con);
+  for (const x of [-0.78, -0.26, 0.26, 0.78]) {
+    roomBox(0.5, 0.36, 0.012, teakMat, x, 0.29, 0.236, con);
+    const pull = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.012, 14).rotateX(Math.PI / 2), darkWoodMat); pull.position.set(x + (x < 0 ? 0.2 : -0.2), 0.3, 0.245); con.add(pull);
+  }
+  const top = 0.53;
+  // the speakers: the truck's walnut cabinets, up on the console's ends
+  for (const x of [-0.78, 0.78]) {
+    const cab = new THREE.Group(); cab.position.set(x, top, 0.02); con.add(cab);
+    const box = roomBox(0.44, 0.68, 0.34, cabMat, 0, 0.34, 0, cab);
+    roomBox(0.37, 0.6, 0.015, grilleMat, 0, 0.34, 0.172, cab, false);
+    roomBox(0.09, 0.018, 0.004, trimMat, 0.1, 0.08, 0.181, cab, false);
+    // drivers: a flat brass rim round a dark cone with a dust cap, flush on the baffle (a metal torus read as a second,
+    // off-centre circle in the lamp light: its dark side got inked)
+    for (const [r, y] of [[0.13, 0.25], [0.05, 0.5]]) {
+      const rim = new THREE.Mesh(new THREE.RingGeometry(r + 0.003, r + 0.016, 48), roomBrass); rim.position.set(0, y, 0.1805); cab.add(rim);
+      const cone = new THREE.Group(); cone.position.set(0, y, 0.1802); cab.add(cone);
+      cone.add(new THREE.Mesh(new THREE.CircleGeometry(r + 0.003, 40), roomCone));
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(r * 0.3, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(Math.PI / 2), roomCone); cap.scale.z = 0.5; cone.add(cap);
+      room.cones.push({ g: cone, z0: 0.1802, big: r > 0.1 });
+    }
+    box.castShadow = true;
+  }
+  // the turntable: walnut plinth, black plate, platter + a record, a tonearm that swings onto it, the lid propped open
+  const tt = new THREE.Group(); tt.position.set(0, top, 0.02); con.add(tt); room.tt = tt;
+  roomBox(0.64, 0.1, 0.46, cabMat, 0, 0.07, 0, tt);
+  roomBox(0.6, 0.006, 0.42, grilleMat, 0, 0.123, 0, tt, false);
+  for (const fx of [-0.27, 0.27]) for (const fz of [-0.19, 0.19]) { const f = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.02, 10), grilleMat); f.position.set(fx, 0.01, fz); tt.add(f); }
+  const platter = new THREE.Group(); platter.position.set(-0.06, 0.13, 0.01); tt.add(platter); room.platter = platter;
+  platter.add(new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.018, 40), grilleMat));
+  const rec = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.006, 40), [discEdge, recordMats[1], recordMats[1]]); rec.position.y = 0.012; platter.add(rec); room.platRec = rec;
+  const spindle = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.03, 8), trimMat); spindle.position.y = 0.02; platter.add(spindle);
+  const pivotAt = new THREE.Vector3(0.22, 0.145, -0.12);
+  const pivot = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.04, 14), trimMat); pivot.position.copy(pivotAt); tt.add(pivot);
+  const arm = new THREE.Group(); arm.position.copy(pivotAt).setY(0.165); tt.add(arm); room.arm = arm;
+  const armTo = new THREE.Vector3(0.04 - pivotAt.x, -0.01, 0.1 - pivotAt.z), armLen = armTo.length();
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, armLen, 8), trimMat);
+  rod.position.copy(armTo).multiplyScalar(0.5); rod.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), armTo.clone().normalize()); arm.add(rod);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.012, 0.045), grilleMat); head.position.copy(armTo).add(new THREE.Vector3(-0.005, -0.003, 0.015)); head.rotation.y = 0.5; arm.add(head);
+  const weight = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.05, 14).rotateX(Math.PI / 2), grilleMat); weight.position.set(0.02, -0.005, -0.06); arm.add(weight);
+  arm.rotation.y = room.armRest;
+  const hinge = new THREE.Group(); hinge.position.set(0, 0.125, -0.23); hinge.rotation.x = -1.25; tt.add(hinge);
+  const lid = new THREE.Mesh(new THREE.BoxGeometry(0.63, 0.08, 0.45), lidMatGlass); lid.position.set(0, 0.04, 0.225); hinge.add(lid);
+  // the record crate: an open teak box on the floor, angled toward you, the sleeves standing spine-out
+  const crate = new THREE.Group(); crate.position.set(-0.7, 0, 0.12); crate.rotation.y = 0.5; roomScene.add(crate); room.crate = crate;
+  const n = ROOM_MODES.length, T = 0.048, W = n * T + 0.06;
+  roomBox(W, 0.03, 0.36, teakMat, 0, 0.015, 0, crate);
+  for (const x of [-W / 2, W / 2]) roomBox(0.02, 0.24, 0.36, teakMat, x, 0.12, 0, crate);
+  roomBox(W, 0.24, 0.02, teakMat, 0, 0.12, -0.18, crate);
+  roomBox(W, 0.1, 0.02, teakMat, 0, 0.05, 0.18, crate);
+  ROOM_MODES.forEach((m, i) => {
+    // a sleeve: cover on +x, the spine facing out of the crate (+z); the disc hides inside it
+    // (both lit from within a little: the spine so it reads in the dark, the cover brighter while it's held up to look at)
+    const coverTex = sleeveArt(m, 512, 512, false), spineTex = sleeveArt(m, 96, 864, true);
+    const mats = [new THREE.MeshStandardMaterial({ map: coverTex, emissiveMap: coverTex, emissive: '#ffffff', emissiveIntensity: 0, roughness: 0.7 }), sleeveBack, sleeveEdge, sleeveEdge,
+      new THREE.MeshStandardMaterial({ map: spineTex, emissiveMap: spineTex, emissive: '#ffffff', emissiveIntensity: 0.16, roughness: 0.6 }), sleeveEdge];
+    const s = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.315, 0.315), mats); s.castShadow = true;
+    const local = new THREE.Vector3(-W / 2 + 0.03 + T * (i + 0.5), 0.03 + 0.1575 + 0.002, 0.005);
+    s.position.copy(crate.localToWorld(local.clone())); s.quaternion.copy(crate.quaternion); s.rotateZ((i % 2 ? 1 : -1) * 0.02);
+    roomScene.add(s);
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.004, 40), [discEdge, ...Array(2).fill(new THREE.MeshStandardMaterial({ map: canvasTex(512, 512, g => recordFace(g, 512, m.label)), roughness: 0.32, metalness: 0.15, alphaTest: 0.5 }))]);
+    disc.visible = false; roomScene.add(disc);
+    room.sleeves.push({ m, s, disc, cover: mats[0], home: { p: s.position.clone(), q: s.quaternion.clone() }, out: 0 });
+  });
+  // a chabudai with a cup of tea, a cushion, a paper lantern
+  const tbl = new THREE.Group(); tbl.position.set(1.1, 0, 0.35); roomScene.add(tbl);
+  const tTop = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.04, 40), teakMat); tTop.position.y = 0.32; tTop.castShadow = tTop.receiveShadow = true; tbl.add(tTop);
+  for (let a = 0; a < 4; a++) roomBox(0.05, 0.3, 0.05, darkWoodMat, Math.cos(a * Math.PI / 2 + 0.78) * 0.28, 0.15, Math.sin(a * Math.PI / 2 + 0.78) * 0.28, tbl);
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.07, 20), new THREE.MeshStandardMaterial({ color: '#5f7a63', roughness: 0.4 })); cup.position.set(-0.1, 0.375, 0.05); cup.castShadow = true; tbl.add(cup);
+  const cushion = roomBox(0.55, 0.08, 0.55, new THREE.MeshStandardMaterial({ color: '#7c3b33', roughness: 0.9 }), 0.25, 0.04, 1.05);
+  cushion.rotation.y = 0.2;
+  const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.2, 24, 16), new THREE.MeshStandardMaterial({ color: '#fff1d0', emissive: '#ffcf80', emissiveIntensity: 0.9, roughness: 1 }));
+  lantern.scale.y = 1.25; lantern.position.set(0.35, 2.05, -0.6); roomScene.add(lantern);
+  roomBox(0.006, 0.36, 0.006, darkWoodMat, 0.35, 2.43, -0.6, roomScene, false);
+  // night: moonlight through the shoji, a low blue fill, and warm accents — a paper andon lamp by the console, the
+  // lantern turned down, a glow strip under the console, and a little spot on the record crate
+  roomScene.add(new THREE.HemisphereLight('#4c5c8c', '#1a120c', 0.3));
+  const moon = new THREE.DirectionalLight('#9db4ff', 0.75); moon.position.set(-1.6, 2.8, -3.4); moon.target.position.set(0, 0.3, 0);
+  moon.castShadow = true; moon.shadow.mapSize.set(1024, 1024); Object.assign(moon.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 0.5, far: 10 }); moon.shadow.bias = -0.0008;
+  roomScene.add(moon, moon.target);
+  const andon = new THREE.Group(); andon.position.set(1.62, 0, -1.55); roomScene.add(andon);
+  for (const x of [-0.13, 0.13]) for (const z of [-0.13, 0.13]) roomBox(0.025, 0.78, 0.025, darkWoodMat, x, 0.39, z, andon);
+  roomBox(0.29, 0.02, 0.29, darkWoodMat, 0, 0.78, 0, andon); roomBox(0.29, 0.02, 0.29, darkWoodMat, 0, 0.12, 0, andon);
+  roomBox(0.24, 0.6, 0.24, new THREE.MeshStandardMaterial({ map: roomTex.shoji, emissiveMap: roomTex.shoji, emissive: '#ffc070', emissiveIntensity: 1.1, roughness: 1 }), 0, 0.45, 0, andon, false);
+  const andonLight = new THREE.PointLight('#ffb25e', 2.4, 3.2, 1.8); andonLight.position.set(1.62, 0.5, -1.55); roomScene.add(andonLight);
+  lantern.material.emissiveIntensity = 0.55; lantern.material.emissive.set('#ffb860');
+  const glow = new THREE.PointLight('#ffa860', 0.8, 3.5, 2); glow.position.set(0.35, 1.8, -0.6); roomScene.add(glow);
+  const strip = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.012, 0.012), new THREE.MeshStandardMaterial({ color: '#ffcf8a', emissive: '#ffb050', emissiveIntensity: 2.4 }));
+  strip.position.set(0.35, 0.075, -1.53); roomScene.add(strip);
+  const under = new THREE.PointLight('#ff9e48', 0.35, 0.9, 2); under.position.set(0.35, 0.05, -1.62);   // (a soft pool under it) roomScene.add(under);
+  const spot = new THREE.SpotLight('#ffe0b0', 6, 4.5, 0.4, 0.6, 1.5); spot.position.set(-0.35, 2.25, 0.75); spot.target = room.crate;
+  spot.castShadow = true; spot.shadow.mapSize.set(512, 512); spot.shadow.bias = -0.001; roomScene.add(spot);
+  layoutRoomCam();
+}
+// framing: the shelf left of centre, the hi-fi across the back; pulled back on tall screens so both still fit
+function layoutRoomCam() {
+  const a = innerWidth / innerHeight, tall = THREE.MathUtils.clamp((1.3 - a) / 0.8, 0, 1);
+  roomCam.aspect = a; roomCam.fov = 42 + tall * 22; roomCam.updateProjectionMatrix();
+  roomCam.position.set(0.32 - tall * 0.35, 1.0 + tall * 0.3, 1.85 + tall * 0.5);
+  roomCam.lookAt(-0.15 - tall * 0.15, 0.36, -0.7);
+}
+
+// ---- the menu's own buttons: one invisible button over each spine (mouse, keys and the controller all use them),
+// and the cover card
+function buildRoomUi() {
+  const ui = document.createElement('div'); ui.id = 'roomUi';
+  ui.innerHTML = `<div class="roomHead"><h1>Beat <em>街道</em></h1><p class="tag">Pick a record. Drive through Japan to the beat.</p></div>
+    <div id="spines"></div>
+    <div id="coverCard" class="panel hidden"><div class="ccKick" id="ccKick"></div><h2 id="ccTitle"></h2><p id="ccInfo"></p><div id="ccExtra"></div>
+      <div class="row ccBtns"><button class="btn" id="btnCoverPlay" data-pad-first="1">Play</button><button class="btn ghost" id="btnCoverBack">Back</button></div></div>`;
+  $('menu').appendChild(ui);
+  ui.querySelector('.roomHead').appendChild($('btnSettings'));
+  const spines = $('spines');
+  room.sleeves.forEach((r, i) => {
+    const b = document.createElement('button'); b.className = 'spineHot'; b.setAttribute('aria-label', r.m.title + (r.m.soon ? ' (coming soon)' : ''));
+    b.onmouseenter = () => { if (room.hot !== i) SFX.menuTick(); room.hot = i; }; b.onfocus = () => { room.hot = i; }; b.onmouseleave = b.onblur = () => { if (room.hot === i) room.hot = -1; };
+    b.onclick = () => openCover(i); if (!i) b.dataset.padFirst = '1';
+    spines.appendChild(b); r.btn = b;
+  });
+  $('btnCoverBack').onclick = closeCover;
+  $('btnCoverPlay').onclick = () => playRecord(room.sel);
+  // Burn a CD: the song list and its buttons live on that record's card
+  $('ccExtra').append($('cdPanel'), $('err'));
+  const playCdOrig = $('btnPlayCD').onclick;
+  $('btnPlayCD').onclick = () => { if (room.phase === 'cover' && room.sel >= 0 && ROOM_MODES[room.sel].cd) dropRecord(room.sel, playCdOrig); else playCdOrig(); };
+}
+function openCover(i) {
+  if (room.phase !== 'browse') return;
+  const r = room.sleeves[i]; room.sel = i; room.phase = 'cover'; room.hot = -1;
+  $('spines').classList.add('hidden');
+  // in front of the camera, cover toward it, a little left of centre (above centre on a tall screen)
+  const tall = innerWidth / innerHeight < 0.9, p = new THREE.Vector3(tall ? 0 : -0.13, tall ? 0.08 : 0.01, -0.62);
+  roomCam.localToWorld(p);
+  const q = roomCam.quaternion.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2));   // (the cover, +x, toward the camera)
+  const lift = r.home.p.clone().add(new THREE.Vector3(0, 0.4, 0));   // straight up out of the crate first
+  tween(r.s, lift, r.home.q, 0.22, () => tween(r.s, p, q, 0.45, null, 0.06));
+  SFX.sleeveOut();
+  const m = r.m;
+  $('ccKick').textContent = m.prog ? `${m.kicker} · ${$(m.prog).textContent}` : m.kicker;
+  $('ccTitle').textContent = m.title; $('ccInfo').textContent = m.info;
+  const best = m.best && $(m.best).textContent; $('ccExtra').dataset.best = best || '';
+  $('cdPanel').style.display = m.cd ? '' : 'none'; $('err').style.display = m.cd ? '' : 'none';
+  $('btnCoverPlay').textContent = m.soon ? 'Coming soon' : m.cd ? 'Pick songs' : m.id === 'btnCampaign' ? 'Open' : 'Play';
+  $('btnCoverPlay').disabled = !!m.soon;
+  setTimeout(() => { if (room.phase === 'cover' && room.sel === i) { $('coverCard').classList.remove('hidden'); padUnfocus(); } }, 260);
+}
+function closeCover() {
+  if (room.phase !== 'cover') return;
+  const r = room.sleeves[room.sel]; room.phase = 'browse';
+  $('coverCard').classList.add('hidden'); $('spines').classList.remove('hidden');
+  const lift = r.home.p.clone().add(new THREE.Vector3(0, 0.4, 0));   // back above its slot, then straight down into it
+  tween(r.s, lift, r.home.q, 0.4, () => tween(r.s, r.home.p, r.home.q, 0.22), 0.05);
+  SFX.sleeveIn();
+  padUnfocus(); room.sel = -1;
+}
+function playRecord(i) {
+  const m = ROOM_MODES[i];
+  if (m.soon) return;
+  if (m.cd) { $('fileIn').click(); return; }                     // the picker has to open on the click itself
+  dropRecord(i, () => $(m.id).click());
+}
+// the sleeve goes beside the turntable, the disc slides out, flies onto the platter, the arm comes over, and the mode
+// starts (the audio's unlocked here, on the click, so it can play once the animation's done)
+function dropRecord(i, start) {
+  if (room.phase !== 'cover') return;
+  try { ensureAudio(); } catch {}
+  const r = room.sleeves[i]; room.phase = 'playing';
+  $('coverCard').classList.add('hidden');
+  // the sleeve stands on the tatami leaning back against the console's doors, right under the turntable
+  const tw = new THREE.Vector3(); room.tt.getWorldPosition(tw);
+  const besideP = new THREE.Vector3(tw.x, 0.161, -1.478);   // (clear of the door pulls)
+  const besideQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -0.12).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2));
+  tween(r.s, besideP, besideQ, 0.5, () => {
+    const d = r.disc; d.visible = true; d.position.copy(r.s.position); d.quaternion.copy(r.s.quaternion).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2));
+    const up = d.position.clone().add(new THREE.Vector3(0, 0.64, 0));   // up out of the sleeve, clear of the console's top edge
+    SFX.discOut();
+    tween(d, up, d.quaternion.clone(), 0.4, () => {
+      const pw = new THREE.Vector3(); room.platter.getWorldPosition(pw);
+      tween(d, pw.clone().add(new THREE.Vector3(0, 0.12, 0)), new THREE.Quaternion(), 0.45, () => {
+        tween(d, pw.clone().add(new THREE.Vector3(0, 0.022, 0)), new THREE.Quaternion(), 0.18, () => {
+          room.platter.attach(d); room.platRec.visible = false; d.position.set(0, 0.014, 0); d.rotation.set(0, 0, 0);
+          room.armTo = room.armPlay;
+          setTimeout(() => SFX.needle(), 280);   // (as the arm comes down)
+          setTimeout(() => { if (room.phase === 'playing') start(); }, 650);
+        });
+      }, 0.12);
+    });
+  });
+}
+// put it all back: sleeve in the crate, disc away, arm on its rest (on coming back to the menu)
+function roomReset() {
+  room.tweens.length = 0;
+  for (const r of room.sleeves) { r.s.position.copy(r.home.p); r.s.quaternion.copy(r.home.q); r.out = 0; if (r.disc.parent !== roomScene) roomScene.attach(r.disc); r.disc.visible = false; }
+  room.platRec.visible = true; room.arm.rotation.y = room.armTo = room.armRest;
+  room.phase = 'browse'; room.sel = -1; room.hot = -1;
+  $('coverCard').classList.add('hidden'); $('spines').classList.remove('hidden');
+}
+function tween(obj, p, q, dur, done, arc = 0) {
+  room.tweens = room.tweens.filter(t => t.obj !== obj);
+  room.tweens.push({ obj, p0: obj.position.clone(), q0: obj.quaternion.clone(), p1: p.clone(), q1: q.clone(), t: 0, dur, done, arc });
+}
+const _rv = new THREE.Vector3(), _rq = new THREE.Quaternion();
+function roomFrame(dt) {
+  if (!room.built) { buildRoom(); buildRoomUi(); room.built = true; room.armTo = room.armRest; }
+  const menuOn = !$('menu').classList.contains('hidden');
+  if (menuOn && !room.shown && room.phase === 'playing') roomReset();          // back from a run (or the campaign / lobby)
+  room.shown = menuOn;
+  $('roomUi').classList.toggle('hidden', !menuOn);
+  // tweens (ease in-out, an optional hop)
+  for (let i = room.tweens.length - 1; i >= 0; i--) {
+    const t = room.tweens[i]; t.t += dt;
+    const k = Math.min(1, t.t / t.dur), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+    t.obj.position.lerpVectors(t.p0, t.p1, e); if (t.arc) t.obj.position.y += Math.sin(Math.PI * e) * t.arc;
+    t.obj.quaternion.slerpQuaternions(t.q0, t.q1, e);
+    if (k >= 1) { room.tweens.splice(i, 1); t.done?.(); }
+  }
+  // the hovered spine slides partway out of the crate
+  room.sleeves.forEach((r, i) => {
+    const want = room.phase === 'browse' && room.hot === i ? 1 : 0;
+    r.out += (want - r.out) * Math.min(1, dt * 12);
+    if (room.phase === 'browse' && !room.tweens.some(t => t.obj === r.s)) {
+      _rv.set(0, 0.09, 0.05).applyQuaternion(room.crate.quaternion).multiplyScalar(r.out);   // (up past the front wall, then out)
+      r.s.position.copy(r.home.p).add(_rv);
+    }
+  });
+  // the cover held up to look at catches the light (it'd be black in the dark room otherwise)
+  room.sleeves.forEach((r, i) => {
+    const want = room.sel === i ? (room.phase === 'cover' ? 0.85 : room.phase === 'playing' ? 0.3 : 0) : 0;
+    r.cover.emissiveIntensity += (want - r.cover.emissiveIntensity) * Math.min(1, dt * 6);
+  });
+  room.platter.rotation.y -= dt * (room.phase === 'playing' ? 3.5 : 0.6);
+  room.arm.rotation.y += (room.armTo - room.arm.rotation.y) * Math.min(1, dt * 5);
+  // the spine buttons over their spines
+  if (menuOn && room.phase === 'browse') {
+    roomCam.updateMatrixWorld();
+    for (const r of room.sleeves) {
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+      for (const [sy, sx] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+        _rv.set(sx * 0.021, sy * 0.1575, 0.1575).applyQuaternion(r.s.quaternion).add(r.s.position).project(roomCam);
+        const px = (_rv.x * 0.5 + 0.5) * innerWidth, py = (-_rv.y * 0.5 + 0.5) * innerHeight;
+        x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+      }
+      Object.assign(r.btn.style, { left: x0 + 'px', top: y0 + 'px', width: Math.max(14, x1 - x0) + 'px', height: (y1 - y0) + 'px' });
+    }
+  }
+  // the speakers breathe while a record's on
+  const beat = room.phase === 'playing' ? Math.max(0, Math.sin(performance.now() / 1000 * Math.PI * 2 * 1.6)) ** 6 : 0;
+  for (const c of room.cones) c.g.position.z = c.z0 + beat * (c.big ? 0.012 : 0.004);
+  updateSqueal(); updateEngine(); updatePump();   // (they fade themselves out outside a run)
+  // draw it through the game's passes
+  const rp = composer.passes[0];
+  rp.scene = roomScene; rp.camera = roomCam;
+  ink.uniforms.near.value = roomCam.near; ink.uniforms.far.value = roomCam.far; ink.uniforms.fadeFar.value = 30; ink.uniforms.mono.value = 0;
+  ink.uniforms.inkCol.value.set('#1a1426');
+  composer.render();
+}
+// leaving the menu: the passes go back to the road
+function roomLeave() {
+  const rp = composer.passes[0];
+  if (rp.scene === roomScene) { rp.scene = scene; rp.camera = camera; ink.uniforms.near.value = camera.near; ink.uniforms.far.value = camera.far; }
+}
+addEventListener('resize', layoutRoomCam);
+// the menu's sounds need the audio up: start it on the first press in the menu (a browser only allows it on one)
+for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => { if (state === 'menu') ensureAudio(); }, true);
+// any other button pressed in the menus clicks (the records and their cover card have their own sounds)
+document.addEventListener('click', e => {
+  const b = e.target.closest?.('button, label.choice');
+  if (!b || b.closest('#hud') || b.classList.contains('spineHot') || b.id === 'btnCoverPlay' || b.id === 'btnCoverBack') return;
+  SFX.menuClick();
+}, true);
+addEventListener('keydown', e => { if (e.key === 'Escape' && state === 'menu' && room.phase === 'cover' && $('settings').classList.contains('hidden')) closeCover(); });
+
 // ---------------------------------------------------------------- main loop
 updateEnv(carS);
 for (let i = 0; i < 8; i++) updateChunks(carS, 8);
@@ -8306,6 +8985,8 @@ function frame() {
   if (SPLIT && PL) { splitFrame(t, dtReal); return; }
   if (lobby) lobbyPoll();
   pollPad(dtReal);
+  if (state === 'menu') { roomFrame(dtReal); return; }   // the menu is the living room (its own scene)
+  roomLeave();
   // crash-cam slow motion (final takedown): the game runs at a fraction of real time for a moment (the music doesn't —
   // the level's over, so nothing needs to stay in sync)
   if (crashCam && state === 'playing') { crashCam.t -= dtReal; if (crashCam.t <= 0) crashCam = null; }
